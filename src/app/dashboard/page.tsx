@@ -1,17 +1,42 @@
 import Link from "next/link";
-import { AddProductForm } from "@/components/forms";
+import { AddProductForm, AvailabilityForm } from "@/components/forms";
+import { GoogleCalendarCard } from "@/components/google-calendar-card";
+import { WeekCalendar } from "@/components/week-calendar";
 import { resetDemoAction } from "@/lib/actions";
-import { formatClp, getCreator, listProducts, getStore } from "@/lib/demo-store";
+import {
+  formatClp,
+  getCreator,
+  getStore,
+  listProducts,
+  listUpcomingSessions,
+} from "@/lib/demo-store";
+import {
+  isGoogleConfigured,
+  isGoogleConnected,
+  listUpcomingGoogleEvents,
+} from "@/lib/google-calendar";
+import { formatSlotRange } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const [creator, products, store] = await Promise.all([
-    getCreator(),
-    listProducts(),
-    getStore(),
-  ]);
+type Props = {
+  searchParams: Promise<{ google?: string }>;
+};
+
+export default async function DashboardPage({ searchParams }: Props) {
+  const { google } = await searchParams;
+  const [creator, products, store, sessions, googleOn, googleReady, googleEvents] =
+    await Promise.all([
+      getCreator(),
+      listProducts(),
+      getStore(),
+      listUpcomingSessions(),
+      isGoogleConnected(),
+      Promise.resolve(isGoogleConfigured()),
+      listUpcomingGoogleEvents(7),
+    ]);
   const storeUrl = `/u/${creator.username}`;
+  const { availability } = creator;
 
   return (
     <div className="atmosphere min-h-screen">
@@ -28,84 +53,155 @@ export default async function DashboardPage() {
           </Link>
           <form action={resetDemoAction}>
             <button type="submit" className="btn-ghost text-sm">
-              Resetear demo
+              Reiniciar demo
             </button>
           </form>
         </div>
       </header>
 
-      <main className="shell relative z-[1] grid gap-10 pb-20 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] font-display text-lg text-white">
-              {creator.avatarInitials}
-            </div>
-            <div>
-              <h1 className="font-display text-3xl text-[var(--ink)]">{creator.displayName}</h1>
-              <p className="mt-1 text-[var(--ink-muted)]">{creator.headline}</p>
-              <p className="mt-3 text-sm">
-                Tu link público:{" "}
-                <Link href={storeUrl} className="font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline">
-                  localhost:3000{storeUrl}
-                </Link>
-              </p>
-            </div>
-          </div>
+      <main className="shell relative z-[1] space-y-8 pb-20">
+        <WeekCalendar events={googleEvents} connected={googleOn} />
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl bg-[var(--fog)] p-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Productos</p>
-              <p className="mt-1 font-display text-3xl">{products.length}</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--fog)] p-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Ventas demo</p>
-              <p className="mt-1 font-display text-3xl">{store.purchases.length}</p>
-            </div>
-            <div className="col-span-2 rounded-2xl bg-[var(--fog)] p-4 sm:col-span-1">
-              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Plan</p>
-              <p className="mt-1 font-display text-xl">Gratis (demo)</p>
-            </div>
-          </div>
-
-          <h2 className="font-display mt-10 text-2xl">Tus productos</h2>
-          <div className="mt-2">
-            {products.length === 0 ? (
-              <p className="py-6 text-sm text-[var(--ink-muted)]">Aún no hay productos.</p>
-            ) : (
-              products.map((product) => (
-                <div key={product.id} className="product-row">
-                  <div>
-                    <p className="font-semibold text-[var(--ink)]">{product.name}</p>
-                    <p className="mt-1 text-sm text-[var(--ink-muted)] line-clamp-2">
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="font-semibold text-[var(--teal-deep)]">
-                      {formatClp(product.priceClp)}
-                    </p>
-                    <Link
-                      href={`/checkout/${product.id}`}
-                      className="mt-1 inline-block text-sm text-[var(--ink-muted)] underline-offset-2 hover:underline"
-                    >
-                      Probar checkout
-                    </Link>
-                  </div>
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-8">
+            <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] font-display text-lg text-white">
+                  {creator.avatarInitials}
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+                <div>
+                  <h1 className="font-display text-3xl text-[var(--ink)]">
+                    {creator.displayName}
+                  </h1>
+                  <p className="mt-1 text-[var(--ink-muted)]">{creator.headline}</p>
+                  <p className="mt-3 text-sm">
+                    Tu link público:{" "}
+                    <Link
+                      href={storeUrl}
+                      className="font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline"
+                    >
+                      localhost:3000{storeUrl}
+                    </Link>
+                  </p>
+                </div>
+              </div>
 
-        <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
-          <h2 className="font-display text-2xl">Publicar producto digital</h2>
-          <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            En la demo el PDF se asocia automáticamente al archivo de ejemplo.
-          </p>
-          <div className="mt-6">
-            <AddProductForm />
+              <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl bg-[var(--fog)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
+                    Productos
+                  </p>
+                  <p className="mt-1 font-display text-3xl">{products.length}</p>
+                </div>
+                <div className="rounded-2xl bg-[var(--fog)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
+                    Ventas demo
+                  </p>
+                  <p className="mt-1 font-display text-3xl">{store.purchases.length}</p>
+                </div>
+                <div className="col-span-2 rounded-2xl bg-[var(--fog)] p-4 sm:col-span-1">
+                  <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
+                    Citas Pagate
+                  </p>
+                  <p className="mt-1 font-display text-3xl">{sessions.length}</p>
+                </div>
+              </div>
+
+              <h2 className="font-display mt-10 text-2xl">Próximas sesiones Pagate</h2>
+              <div className="mt-2">
+                {sessions.length === 0 ? (
+                  <p className="py-4 text-sm text-[var(--ink-muted)]">
+                    Aún no hay citas. Agenda una desde la tienda.
+                  </p>
+                ) : (
+                  sessions.map(({ purchase, product }) => (
+                    <div key={purchase.id} className="product-row">
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">{product.name}</p>
+                        <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                          {purchase.buyerName} · {purchase.buyerEmail}
+                        </p>
+                        {purchase.slotStart && purchase.slotEnd ? (
+                          <p className="mt-1 text-sm text-[var(--teal-deep)]">
+                            {formatSlotRange(purchase.slotStart, purchase.slotEnd)}
+                          </p>
+                        ) : null}
+                      </div>
+                      {purchase.meetUrl ? (
+                        <a
+                          href={purchase.meetUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline"
+                        >
+                          {purchase.googleEventId ? "Abrir Meet" : "Meet demo"}
+                        </a>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <h2 className="font-display mt-10 text-2xl">Tus productos</h2>
+              <div className="mt-2">
+                {products.map((product) => (
+                  <div key={product.id} className="product-row">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-[var(--teal)]">
+                        {product.type === "session" ? "Sesión" : "Digital"}
+                      </p>
+                      <p className="font-semibold text-[var(--ink)]">{product.name}</p>
+                      <p className="mt-1 text-sm text-[var(--ink-muted)] line-clamp-2">
+                        {product.description}
+                      </p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="font-semibold text-[var(--teal-deep)]">
+                        {formatClp(product.priceClp)}
+                      </p>
+                      <Link
+                        href={`/checkout/${product.id}`}
+                        className="mt-1 inline-block text-sm text-[var(--ink-muted)] underline-offset-2 hover:underline"
+                      >
+                        Probar checkout
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        </section>
+
+          <div className="space-y-8">
+            <GoogleCalendarCard
+              configured={googleReady}
+              connected={googleOn}
+              email={creator.googleCalendar?.email}
+              status={google}
+            />
+
+            <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+              <h2 className="font-display text-2xl">Disponibilidad</h2>
+              <div className="mt-4">
+                <AvailabilityForm
+                  startHour={availability.startHour}
+                  endHour={availability.endHour}
+                  slotMinutes={availability.slotMinutes}
+                />
+              </div>
+            </section>
+
+            <section className="animate-rise-delay-2 rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+              <h2 className="font-display text-2xl">Publicar producto</h2>
+              <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                PDF demo o sesión 1:1 (crea evento real en Google si está conectado).
+              </p>
+              <div className="mt-6">
+                <AddProductForm />
+              </div>
+            </section>
+          </div>
+        </div>
       </main>
     </div>
   );

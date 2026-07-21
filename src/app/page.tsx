@@ -24,8 +24,8 @@ export default function HomePage() {
             Pagate
           </h1>
           <p className="animate-rise-delay-2 mt-5 max-w-xl text-lg leading-relaxed text-[var(--ink-muted)] sm:text-xl">
-            Dejá de hacer de secretario en cada venta. Un link para mostrar tus
-            productos digitales, cobrar en CLP y entregar el PDF solo.
+            Deja de hacer de secretario en cada venta. Un link para mostrar tus
+            productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
           </p>
           <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
             <Link href="/dashboard" className="btn-primary">
@@ -43,16 +43,16 @@ export default function HomePage() {
         <section className="mt-16 grid gap-8 sm:grid-cols-3">
           {[
             {
-              title: "Publicás",
-              body: "Subís tu guía o workbook en minutos. Tu vitrina vive en /u/tu-usuario.",
+              title: "Publicas",
+              body: "Subes tu guía o sesión 1:1 en minutos. Tu vitrina vive en /u/tu-usuario.",
             },
             {
-              title: "Cobrás",
+              title: "Cobras",
               body: "Checkout en pesos chilenos. En producción: Webpay y transferencia vía Flow.",
             },
             {
-              title: "Entregás",
-              body: "Link temporal con límite de descargas. Cero WhatsApp, cero comprobantes.",
+              title: "Entregas",
+              body: "PDF con link temporal, o cita con Meet mock. Cero WhatsApp, cero comprobantes.",
             },
           ].map((item) => (
             <div key={item.title} className="border-t border-[var(--line)] pt-5">

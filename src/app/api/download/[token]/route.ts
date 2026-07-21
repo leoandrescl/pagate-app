@@ -16,6 +16,13 @@ export async function POST(_req: Request, ctx: Ctx) {
     );
   }
 
+  if (!result.product.filePath || !result.product.fileName) {
+    return NextResponse.json(
+      { error: "Este producto no tiene archivo descargable." },
+      { status: 400 },
+    );
+  }
+
   const fileAbs = path.join(
     process.cwd(),
     "public",

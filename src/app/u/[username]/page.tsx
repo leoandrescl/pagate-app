@@ -50,10 +50,20 @@ export default async function StorePage({ params }: Props) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-2xl text-[var(--ink)]">{product.name}</h2>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--teal)]">
+                    {product.type === "session" ? "Sesión 1:1" : "Descarga digital"}
+                  </p>
+                  <h2 className="font-display mt-1 text-2xl text-[var(--ink)]">
+                    {product.name}
+                  </h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">
                     {product.description}
                   </p>
+                  {product.type === "session" && product.durationMinutes ? (
+                    <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                      {product.durationMinutes} min · eliges horario al pagar
+                    </p>
+                  ) : null}
                 </div>
                 <p className="shrink-0 font-semibold text-[var(--teal-deep)]">
                   {formatClp(product.priceClp)}
@@ -63,14 +73,14 @@ export default async function StorePage({ params }: Props) {
                 href={`/checkout/${product.id}`}
                 className="btn-primary mt-5 w-full"
               >
-                Comprar
+                {product.type === "session" ? "Agendar" : "Comprar"}
               </Link>
             </article>
           ))}
         </section>
 
         <p className="mt-10 text-center text-xs text-[var(--ink-muted)]">
-          Powered by Pagate · cobro y entrega automática (demo)
+          Powered by Pagate · cobro, agenda y entrega automática (demo)
         </p>
       </main>
     </div>

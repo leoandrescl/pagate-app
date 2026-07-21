@@ -1,7 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckoutForm } from "@/components/forms";
-import { formatClp, getProduct } from "@/lib/demo-store";
+import {
+  formatClp,
+  getCreator,
+  getProduct,
+  getStore,
+} from "@/lib/demo-store";
+import {
+  fetchBusyIntervals,
+  isGoogleConnected,
+} from "@/lib/google-calendar";
+import { bookedSlotStarts, generateAvailableSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +19,33 @@ type Props = { params: Promise<{ productId: string }> };
 
 export default async function CheckoutPage({ params }: Props) {
   const { productId } = await params;
-  const product = await getProduct(productId);
+  const [product, creator, store] = await Promise.all([
+    getProduct(productId),
+    getCreator(),
+    getStore(),
+  ]);
   if (!product) notFound();
+
+  let busy: { start: string; end: string }[] = [];
+  const googleOn = await isGoogleConnected();
+  if (product.type === "session" && googleOn) {
+    const timeMin = new Date();
+    const timeMax = new Date();
+    timeMax.setDate(timeMax.getDate() + 21);
+    busy = await fetchBusyIntervals(timeMin, timeMax);
+  }
+
+  const slots =
+    product.type === "session"
+      ? generateAvailableSlots(
+          creator.availability,
+          bookedSlotStarts(store.purchases),
+          {
+            busy,
+            durationMinutes: product.durationMinutes,
+          },
+        )
+      : [];
 
   return (
     <div className="atmosphere min-h-screen">
@@ -22,15 +57,24 @@ export default async function CheckoutPage({ params }: Props) {
       </header>
 
       <main className="shell relative z-[1] max-w-md pb-20 pt-6">
-        <h1 className="animate-rise font-display text-3xl text-[var(--ink)]">Checkout</h1>
+        <h1 className="animate-rise font-display text-3xl text-[var(--ink)]">
+          {product.type === "session" ? "Agendar y pagar" : "Checkout"}
+        </h1>
         <p className="animate-rise mt-2 text-sm text-[var(--ink-muted)]">
           Simulación de pago con medios chilenos (Webpay / transferencia).
+          {product.type === "session" && googleOn
+            ? " Horarios libres según tu Google Calendar."
+            : null}
         </p>
         <div className="animate-rise-delay mt-8 rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
           <CheckoutForm
             productId={product.id}
             productName={product.name}
+            productType={product.type}
             priceLabel={formatClp(product.priceClp)}
+            durationMinutes={product.durationMinutes}
+            slots={slots}
+            googleConnected={googleOn}
           />
         </div>
       </main>

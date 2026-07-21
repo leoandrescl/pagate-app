@@ -15,26 +15,38 @@ npm install
 npm run dev
 ```
 
-Abrí [http://localhost:3000](http://localhost:3000). No hace falta `.env`.
+Abre [http://localhost:3000](http://localhost:3000). No hace falta `.env`.
 
 ## Guion para mostrar al socio
 
-1. **Landing (`/`)** — Contá: “Pagate es el link único para vender y entregar sin WhatsApp. Sin comisión de plataforma; solo la de la pasarela.”
-2. **Panel (`/dashboard`)** — Mostrá el creador demo (Camila, nutricionista), los 2 productos seed y el link público. Creá un producto nuevo si querés.
-3. **Tienda (`/u/camila.nutri`)** — “Esto es lo que pone en la bio de Instagram.”
-4. **Checkout (`/checkout/...`)** — Completá nombre/email y pagá. Es un mock (simula Webpay/Flow ~1s).
-5. **Descarga (`/d/[token]`)** — Mostrá el email simulado, el límite de 5 descargas y bajá el PDF.
+1. **Landing (`/`)** — Di: “Pagate es el link único para vender, agendar y entregar sin WhatsApp. Sin comisión de plataforma; solo la de la pasarela.”
+2. **Panel (`/dashboard`)** — Muestra el creador demo (Camila), productos, disponibilidad mock y próximas citas. Crea un producto si quieres.
+3. **Tienda (`/u/camila.nutri`)** — “Esto es lo que pone en la bio de Instagram.” Agenda la sesión 1:1 o compra un PDF.
+4. **Checkout (`/checkout/...`)** — En sesiones: elige horario → paga (mock). En digitales: nombre/email → paga.
+5. **Confirmación (`/d/[token]`)** — Sesión: horario + Meet mock. PDF: descarga con límite.
 
-Botón **Resetear demo** en el panel vuelve al seed inicial.
+Botón **Reiniciar demo** en el panel vuelve al seed inicial.
+
+## Google Calendar (opcional pero recomendado)
+
+1. En [Google Cloud Console](https://console.cloud.google.com/) crea un proyecto (o usa uno existente).
+2. Habilita **Google Calendar API**.
+3. Pantalla de consentimiento OAuth → External → agrega tu email (`leoandrescl@gmail.com`) como usuario de prueba.
+4. Credenciales → **ID de cliente OAuth** → tipo **Aplicación web**.
+5. URI de redirección autorizada: `http://localhost:3000/api/google/callback`
+6. Copia Client ID y Client Secret a `.env.local` (usa `.env.example` como plantilla).
+7. Reinicia `npm run dev` → Panel → **Conectar Google Calendar** → autoriza con tu Gmail.
+
+Al agendar una sesión, Pagate crea el evento en tu calendario primario, genera Meet e invita al comprador. Los bloques ocupados se excluyen del checkout vía FreeBusy.
 
 ## Qué está mockeado (a propósito)
 
 - Pagos (Flow / Webpay)
-- Email transaccional (Resend)
+- Email transaccional (Resend) — la invitación de Calendar sí es real si Google está conectado
 - Auth real de creadores
 - Base de datos (usa `data/store.json` local)
-- Agenda / Google Calendar
 - Boleta SII
+- Google Calendar (solo si no configuraste OAuth; si lo conectas, es real)
 
 ## Stack
 
