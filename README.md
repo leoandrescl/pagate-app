@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pagate — demo localhost
 
-## Getting Started
+Demo funcional (sin pasarelas reales) del modelo **link-in-bio + cobro + entrega de archivos digitales** para creadores en Chile. Sirve para validar atractivo comercial con un socio en menos de 3 minutos.
 
-First, run the development server:
+Basado en el análisis `Analisis_Pulgy_Chile.docx`.
+
+## Requisitos
+
+- Node.js 20+ (LTS)
+
+## Cómo correr
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000). No hace falta `.env`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Guion para mostrar al socio
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Landing (`/`)** — Contá: “Pagate es el link único para vender y entregar sin WhatsApp. Sin comisión de plataforma; solo la de la pasarela.”
+2. **Panel (`/dashboard`)** — Mostrá el creador demo (Camila, nutricionista), los 2 productos seed y el link público. Creá un producto nuevo si querés.
+3. **Tienda (`/u/camila.nutri`)** — “Esto es lo que pone en la bio de Instagram.”
+4. **Checkout (`/checkout/...`)** — Completá nombre/email y pagá. Es un mock (simula Webpay/Flow ~1s).
+5. **Descarga (`/d/[token]`)** — Mostrá el email simulado, el límite de 5 descargas y bajá el PDF.
 
-## Learn More
+Botón **Resetear demo** en el panel vuelve al seed inicial.
 
-To learn more about Next.js, take a look at the following resources:
+## Qué está mockeado (a propósito)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Pagos (Flow / Webpay)
+- Email transaccional (Resend)
+- Auth real de creadores
+- Base de datos (usa `data/store.json` local)
+- Agenda / Google Calendar
+- Boleta SII
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
+- Next.js (App Router) + TypeScript + Tailwind
+- Persistencia demo en archivo JSON
+- PDFs de ejemplo en `public/demo/`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Siguiente fase (si el pitch funciona)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Supabase (Auth + Postgres), Flow sandbox, storage privado + URLs firmadas, Resend, luego agenda y facturación electrónica.

@@ -1,26 +1,185 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #071a17;
+  --ink-muted: #3d5a54;
+  --fog: #f3faf7;
+  --surface: #ffffff;
+  --line: rgba(7, 26, 23, 0.12);
+  --teal: #1f8a72;
+  --teal-deep: #0d5c4d;
+  --mint: #b8f2c8;
+  --coral: #e4572e;
+  --sand: #d7ebe3;
+  --glow: rgba(31, 138, 114, 0.35);
+  --background: var(--fog);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100%;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(184, 242, 200, 0.55), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(228, 87, 46, 0.12), transparent 45%),
+    linear-gradient(165deg, #f7fcfa 0%, #e8f4ef 48%, #f4f8f6 100%);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+.atmosphere {
+  position: relative;
+  overflow: hidden;
+}
+
+.atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: -20% 20% auto -10%;
+  height: 60%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(31, 138, 114, 0.18), transparent 55%),
+    radial-gradient(circle at 70% 20%, rgba(228, 87, 46, 0.1), transparent 50%);
+  pointer-events: none;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 3%, 0) scale(1.05);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.7s ease-out both;
+}
+
+.animate-rise-delay {
+  animation: rise 0.8s ease-out 0.12s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise 0.85s ease-out 0.22s both;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+  color: white;
+  font-weight: 600;
+  padding: 0.85rem 1.35rem;
+  text-decoration: none;
+  box-shadow: 0 10px 30px var(--glow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 34px var(--glow);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  font-weight: 600;
+  padding: 0.85rem 1.25rem;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(7, 26, 23, 0.22);
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.8rem 0.95rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(31, 138, 114, 0.18);
+}
+
+.shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.product-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.product-row:last-child {
+  border-bottom: none;
+}
+
+@media (min-width: 640px) {
+  .product-row {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
 }

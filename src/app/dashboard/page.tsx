@@ -1,0 +1,112 @@
+import Link from "next/link";
+import { AddProductForm } from "@/components/forms";
+import { resetDemoAction } from "@/lib/actions";
+import { formatClp, getCreator, listProducts, getStore } from "@/lib/demo-store";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const [creator, products, store] = await Promise.all([
+    getCreator(),
+    listProducts(),
+    getStore(),
+  ]);
+  const storeUrl = `/u/${creator.username}`;
+
+  return (
+    <div className="atmosphere min-h-screen">
+      <header className="shell flex flex-wrap items-center justify-between gap-4 py-6">
+        <div>
+          <Link href="/" className="font-display text-2xl font-semibold text-[var(--ink)]">
+            Pagate
+          </Link>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">Panel del creador · demo</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href={storeUrl} className="btn-ghost text-sm">
+            Ver mi tienda
+          </Link>
+          <form action={resetDemoAction}>
+            <button type="submit" className="btn-ghost text-sm">
+              Resetear demo
+            </button>
+          </form>
+        </div>
+      </header>
+
+      <main className="shell relative z-[1] grid gap-10 pb-20 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] font-display text-lg text-white">
+              {creator.avatarInitials}
+            </div>
+            <div>
+              <h1 className="font-display text-3xl text-[var(--ink)]">{creator.displayName}</h1>
+              <p className="mt-1 text-[var(--ink-muted)]">{creator.headline}</p>
+              <p className="mt-3 text-sm">
+                Tu link público:{" "}
+                <Link href={storeUrl} className="font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline">
+                  localhost:3000{storeUrl}
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-[var(--fog)] p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Productos</p>
+              <p className="mt-1 font-display text-3xl">{products.length}</p>
+            </div>
+            <div className="rounded-2xl bg-[var(--fog)] p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Ventas demo</p>
+              <p className="mt-1 font-display text-3xl">{store.purchases.length}</p>
+            </div>
+            <div className="col-span-2 rounded-2xl bg-[var(--fog)] p-4 sm:col-span-1">
+              <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Plan</p>
+              <p className="mt-1 font-display text-xl">Gratis (demo)</p>
+            </div>
+          </div>
+
+          <h2 className="font-display mt-10 text-2xl">Tus productos</h2>
+          <div className="mt-2">
+            {products.length === 0 ? (
+              <p className="py-6 text-sm text-[var(--ink-muted)]">Aún no hay productos.</p>
+            ) : (
+              products.map((product) => (
+                <div key={product.id} className="product-row">
+                  <div>
+                    <p className="font-semibold text-[var(--ink)]">{product.name}</p>
+                    <p className="mt-1 text-sm text-[var(--ink-muted)] line-clamp-2">
+                      {product.description}
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="font-semibold text-[var(--teal-deep)]">
+                      {formatClp(product.priceClp)}
+                    </p>
+                    <Link
+                      href={`/checkout/${product.id}`}
+                      className="mt-1 inline-block text-sm text-[var(--ink-muted)] underline-offset-2 hover:underline"
+                    >
+                      Probar checkout
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+          <h2 className="font-display text-2xl">Publicar producto digital</h2>
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">
+            En la demo el PDF se asocia automáticamente al archivo de ejemplo.
+          </p>
+          <div className="mt-6">
+            <AddProductForm />
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
