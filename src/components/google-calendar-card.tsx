@@ -5,16 +5,18 @@ type Props = {
   status?: string;
 };
 
-function statusMessage(status?: string) {
+function statusMessage(status?: string, connected?: boolean) {
   switch (status) {
     case "connected":
-      return "Google Calendar conectado correctamente.";
+      return connected
+        ? "Google Calendar conectado correctamente."
+        : "Google autorizó, pero no quedó la sesión guardada. Pulsa Conectar de nuevo.";
     case "disconnected":
       return "Google Calendar desconectado.";
     case "denied":
       return "Permiso denegado en Google. Intenta de nuevo.";
     case "missing_env":
-      return "Faltan GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET en .env.local.";
+      return "Faltan GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET en las variables de entorno.";
     case "error":
       return "No se pudo completar la conexión con Google.";
     default:
@@ -28,7 +30,8 @@ export function GoogleCalendarCard({
   email,
   status,
 }: Props) {
-  const message = statusMessage(status);
+  const message = statusMessage(status, connected);
+  const isSuccess = status === "connected" && connected;
 
   return (
     <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
@@ -41,7 +44,7 @@ export function GoogleCalendarCard({
       {message ? (
         <p
           className={`mt-4 rounded-xl px-3 py-2 text-sm ${
-            status === "connected"
+            isSuccess
               ? "bg-[var(--mint)]/50 text-[var(--teal-deep)]"
               : "bg-[var(--fog)] text-[var(--coral)]"
           }`}
@@ -57,8 +60,7 @@ export function GoogleCalendarCard({
         </p>
         {!configured ? (
           <p className="mt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
-            Crea credenciales OAuth en Google Cloud y pégalas en{" "}
-            <code className="rounded bg-white/80 px-1">.env.local</code>. Ver README.
+            Faltan credenciales OAuth en el entorno de Vercel / .env.local.
           </p>
         ) : null}
       </div>

@@ -1,10 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomBytes } from "crypto";
+import { cookies } from "next/headers";
 import type { GoogleTokenStore } from "./types";
 import { setGoogleCalendarStatus } from "./demo-store";
 
-const TOKEN_PATH = path.join(
+const COOKIE_NAME = "pagate_gcal";
+const FILE_TOKEN_PATH = path.join(
   process.env.VERCEL || process.env.DATA_DIR
     ? path.join(process.env.DATA_DIR || "/tmp", "pagate-data")
     : path.join(process.cwd(), "data"),
@@ -50,12 +52,58 @@ export function getGoogleAuthUrl(): string {
 }
 
 async function ensureDataDir() {
-  await fs.mkdir(path.dirname(TOKEN_PATH), { recursive: true });
+  await fs.mkdir(path.dirname(FILE_TOKEN_PATH), { recursive: true });
+}
+
+async function readTokensFromCookie(): Promise<GoogleTokenStore | null> {
+  try {
+    const jar = await cookies();
+    const raw = jar.get(COOKIE_NAME)?.value;
+    if (!raw) return null;
+    const json = Buffer.from(raw, "base64url").toString("utf8");
+    return JSON.parse(json) as GoogleTokenStore;
+  } catch {
+    return null;
+  }
+}
+
+async function writeTokensToCookie(tokens: GoogleTokenStore): Promise<boolean> {
+  try {
+    const jar = await cookies();
+    const value = Buffer.from(JSON.stringify(tokens), "utf8").toString("base64url");
+    jar.set({
+      name: COOKIE_NAME,
+      value,
+      httpOnly: true,
+      secure: process.env.VERCEL === "1" || process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+    });
+    return true;
+  } catch {
+    // En Server Components no se puede setear cookie; se ignora.
+    return false;
+  }
+}
+
+async function clearTokensCookie(): Promise<void> {
+  try {
+    const jar = await cookies();
+    jar.delete(COOKIE_NAME);
+  } catch {
+    // ignore
+  }
 }
 
 export async function readGoogleTokens(): Promise<GoogleTokenStore | null> {
+  const fromCookie = await readTokensFromCookie();
+  if (fromCookie?.refresh_token || fromCookie?.access_token) {
+    return fromCookie;
+  }
+
   try {
-    const raw = await fs.readFile(TOKEN_PATH, "utf8");
+    const raw = await fs.readFile(FILE_TOKEN_PATH, "utf8");
     return JSON.parse(raw) as GoogleTokenStore;
   } catch {
     return null;
@@ -63,17 +111,27 @@ export async function readGoogleTokens(): Promise<GoogleTokenStore | null> {
 }
 
 export async function writeGoogleTokens(tokens: GoogleTokenStore): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(TOKEN_PATH, JSON.stringify(tokens, null, 2), "utf8");
+  await writeTokensToCookie(tokens);
+  try {
+    await ensureDataDir();
+    await fs.writeFile(FILE_TOKEN_PATH, JSON.stringify(tokens, null, 2), "utf8");
+  } catch {
+    // En Vercel el filesystem puede fallar; la cookie es la fuente de verdad.
+  }
 }
 
 export async function clearGoogleTokens(): Promise<void> {
+  await clearTokensCookie();
   try {
-    await fs.unlink(TOKEN_PATH);
+    await fs.unlink(FILE_TOKEN_PATH);
   } catch {
     // ignore
   }
-  await setGoogleCalendarStatus({ connected: false });
+  try {
+    await setGoogleCalendarStatus({ connected: false });
+  } catch {
+    // ignore
+  }
 }
 
 export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenStore> {
@@ -127,11 +185,15 @@ export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenSt
   }
 
   await writeGoogleTokens(stored);
-  await setGoogleCalendarStatus({
-    connected: true,
-    email: stored.email,
-    connectedAt: new Date().toISOString(),
-  });
+  try {
+    await setGoogleCalendarStatus({
+      connected: true,
+      email: stored.email,
+      connectedAt: new Date().toISOString(),
+    });
+  } catch {
+    // store efímero en Vercel; la cookie manda
+  }
   return stored;
 }
 
@@ -194,6 +256,11 @@ async function getAccessToken(): Promise<string> {
 export async function isGoogleConnected(): Promise<boolean> {
   const tokens = await readGoogleTokens();
   return Boolean(tokens?.refresh_token || tokens?.access_token);
+}
+
+export async function getGoogleAccountEmail(): Promise<string | undefined> {
+  const tokens = await readGoogleTokens();
+  return tokens?.email;
 }
 
 /** Busy intervals from primary calendar (ISO strings). */

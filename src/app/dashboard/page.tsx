@@ -11,6 +11,7 @@ import {
   listUpcomingSessions,
 } from "@/lib/demo-store";
 import {
+  getGoogleAccountEmail,
   isGoogleConfigured,
   isGoogleConnected,
   listUpcomingGoogleEvents,
@@ -25,7 +26,7 @@ type Props = {
 
 export default async function DashboardPage({ searchParams }: Props) {
   const { google } = await searchParams;
-  const [creator, products, store, sessions, googleOn, googleReady, googleEvents] =
+  const [creator, products, store, sessions, googleOn, googleReady, googleEvents, googleEmail] =
     await Promise.all([
       getCreator(),
       listProducts(),
@@ -34,9 +35,14 @@ export default async function DashboardPage({ searchParams }: Props) {
       isGoogleConnected(),
       Promise.resolve(isGoogleConfigured()),
       listUpcomingGoogleEvents(7),
+      getGoogleAccountEmail(),
     ]);
   const storeUrl = `/u/${creator.username}`;
   const { availability } = creator;
+  const publicHost = (
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ).replace(/^https?:\/\//, "");
+
 
   return (
     <div className="atmosphere min-h-screen">
@@ -80,7 +86,8 @@ export default async function DashboardPage({ searchParams }: Props) {
                       href={storeUrl}
                       className="font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline"
                     >
-                      localhost:3000{storeUrl}
+                      {publicHost}
+                      {storeUrl}
                     </Link>
                   </p>
                 </div>
@@ -176,7 +183,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <GoogleCalendarCard
               configured={googleReady}
               connected={googleOn}
-              email={creator.googleCalendar?.email}
+              email={googleEmail || creator.googleCalendar?.email}
               status={google}
             />
 
