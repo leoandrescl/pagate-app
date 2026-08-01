@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { AddProductForm, AvailabilityForm } from "@/components/forms";
+import { CouponsPanel } from "@/components/coupons-panel";
 import { GoogleCalendarCard } from "@/components/google-calendar-card";
 import { MercadoPagoCard } from "@/components/mercadopago-card";
+import { StoreSettingsPanel } from "@/components/store-settings-panel";
+import { DashboardStoreProvider } from "@/components/store-providers";
 import { WeekCalendar } from "@/components/week-calendar";
 import { resetDemoAction } from "@/lib/actions";
 import {
@@ -46,6 +49,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
 
   return (
+    <DashboardStoreProvider headline={creator.headline} bio={creator.bio}>
     <div className="atmosphere min-h-screen">
       <header className="shell flex flex-wrap items-center justify-between gap-4 py-6">
         <div>
@@ -191,6 +195,26 @@ export default async function DashboardPage({ searchParams }: Props) {
             />
 
             <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+              <h2 className="font-display text-2xl">Mi tienda</h2>
+              <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                Personaliza banner, bio, redes y color de marca de tu vitrina pública.
+              </p>
+              <div className="mt-6">
+                <StoreSettingsPanel />
+              </div>
+            </section>
+
+            <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+              <h2 className="font-display text-2xl">Cupones</h2>
+              <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                Crea códigos de descuento para tus clientes.
+              </p>
+              <div className="mt-6">
+                <CouponsPanel />
+              </div>
+            </section>
+
+            <section className="animate-rise-delay rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
               <h2 className="font-display text-2xl">Disponibilidad</h2>
               <div className="mt-4">
                 <AvailabilityForm
@@ -204,7 +228,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <section className="animate-rise-delay-2 rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
               <h2 className="font-display text-2xl">Publicar producto</h2>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                PDF demo o sesión 1:1 (crea evento real en Google si está conectado).
+                PDF demo, sesión 1:1 o acceso a comunidad (Telegram, WhatsApp, Zoom).
               </p>
               <div className="mt-6">
                 <AddProductForm />
@@ -214,5 +238,6 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       </main>
     </div>
+    </DashboardStoreProvider>
   );
 }
