@@ -10,7 +10,11 @@ import {
   createCalendarEventWithMeet,
   isGoogleConnected,
 } from "@/lib/google-calendar";
-import type { MpPayment } from "@/lib/mercadopago";
+import {
+  findApprovedPaymentByExternalReference,
+  isMercadoPagoConfigured,
+  type MpPayment,
+} from "@/lib/mercadopago";
 import type { Purchase } from "@/lib/types";
 
 function metaString(
@@ -19,6 +23,21 @@ function metaString(
 ): string {
   const v = metadata?.[key];
   return v == null ? "" : String(v);
+}
+
+/** Si el store local quedó desfasado (p. ej. /tmp en Vercel), relee MP y cumple. */
+export async function syncPurchaseFromMercadoPago(
+  token: string,
+): Promise<{ purchase: Purchase; alreadyPaid: boolean } | null> {
+  if (!isMercadoPagoConfigured() || !token) return null;
+  try {
+    const payment = await findApprovedPaymentByExternalReference(token);
+    if (!payment || payment.status !== "approved") return null;
+    return fulfillApprovedPayment(payment);
+  } catch (err) {
+    console.error("[mp] sync purchase", token, err);
+    return null;
+  }
 }
 
 export async function fulfillApprovedPayment(

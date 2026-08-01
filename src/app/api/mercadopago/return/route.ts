@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
-import { extractPaymentId, getPayment } from "@/lib/mercadopago";
-import { fulfillApprovedPayment } from "@/lib/fulfill-payment";
+import {
+  extractPaymentId,
+  getAppBaseUrl,
+  getPayment,
+} from "@/lib/mercadopago";
+import {
+  fulfillApprovedPayment,
+  syncPurchaseFromMercadoPago,
+} from "@/lib/fulfill-payment";
 import { getPurchaseByToken, updatePurchasePayment } from "@/lib/demo-store";
-import { getAppBaseUrl } from "@/lib/mercadopago";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,9 +22,13 @@ export async function GET(request: Request) {
   });
 
   const externalRef = searchParams.get("external_reference");
+  const mpApproved =
+    result === "success" ||
+    searchParams.get("status") === "approved" ||
+    searchParams.get("collection_status") === "approved";
 
   try {
-    if (paymentId && (result === "success" || searchParams.get("status") === "approved" || searchParams.get("collection_status") === "approved")) {
+    if (paymentId && mpApproved) {
       const payment = await getPayment(paymentId);
       const fulfilled = await fulfillApprovedPayment(payment);
       if (fulfilled) {
@@ -29,6 +39,13 @@ export async function GET(request: Request) {
     }
 
     if (externalRef) {
+      const synced = await syncPurchaseFromMercadoPago(externalRef);
+      if (synced) {
+        return NextResponse.redirect(
+          new URL(`/d/${synced.purchase.token}?email=1&mp=1`, base),
+        );
+      }
+
       const found = await getPurchaseByToken(externalRef);
       if (found?.purchase.status === "paid") {
         return NextResponse.redirect(
@@ -46,12 +63,22 @@ export async function GET(request: Request) {
           ),
         );
       }
+
+      // success sin payment_id usable: manda al comprobante; /d sincroniza con MP
+      if (mpApproved) {
+        return NextResponse.redirect(
+          new URL(`/d/${externalRef}?email=1&mp=1`, base),
+        );
+      }
     }
   } catch (err) {
     console.error("[mp] return handler", err);
   }
 
   return NextResponse.redirect(
-    new URL(`/checkout/mp-result?status=${result}`, base),
+    new URL(
+      `/checkout/mp-result?status=${result}${externalRef ? `&token=${externalRef}` : ""}`,
+      base,
+    ),
   );
 }

@@ -139,6 +139,36 @@ export async function getPayment(paymentId: string): Promise<MpPayment> {
   return data;
 }
 
+/** Busca un pago aprobado por external_reference (token Pagate). */
+export async function findApprovedPaymentByExternalReference(
+  externalReference: string,
+): Promise<MpPayment | null> {
+  const url = new URL("https://api.mercadopago.com/v1/payments/search");
+  url.searchParams.set("external_reference", externalReference);
+  url.searchParams.set("sort", "date_created");
+  url.searchParams.set("criteria", "desc");
+  url.searchParams.set("range", "date_created");
+  url.searchParams.set("begin_date", "NOW-30DAYS");
+  url.searchParams.set("end_date", "NOW");
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
+    cache: "no-store",
+  });
+  const data = (await res.json()) as {
+    results?: MpPayment[];
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.message || "No se pudo buscar el pago en Mercado Pago");
+  }
+  return (
+    data.results?.find((p) => p.status === "approved") ??
+    data.results?.[0] ??
+    null
+  );
+}
+
 /** Extrae payment id desde query de retorno Checkout Pro o body webhook. */
 export function extractPaymentId(params: {
   payment_id?: string | null;

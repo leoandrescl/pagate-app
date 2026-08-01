@@ -2,19 +2,29 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatClp, getPurchaseByToken } from "@/lib/demo-store";
 import { DownloadButton } from "@/components/download-button";
+import { syncPurchaseFromMercadoPago } from "@/lib/fulfill-payment";
 import { formatSlotRange } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; mp?: string }>;
 };
 
 export default async function DownloadPage({ params, searchParams }: Props) {
   const { token } = await params;
   const { email } = await searchParams;
-  const result = await getPurchaseByToken(token);
+  let result = await getPurchaseByToken(token);
+
+  // En Vercel el store en /tmp no es compartido: si MP ya aprobó, sincronizamos aquí.
+  if (!result || result.purchase.status !== "paid") {
+    const synced = await syncPurchaseFromMercadoPago(token);
+    if (synced) {
+      result = await getPurchaseByToken(token);
+    }
+  }
+
   if (!result) notFound();
 
   const { purchase, product } = result;
