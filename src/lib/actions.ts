@@ -4,15 +4,15 @@ import { revalidatePath } from "next/cache";
 import {
   createProduct,
   createPurchase,
-  getProduct,
   resetDemoStore,
   updateAvailability,
-  updatePurchaseCalendar,
+  updatePurchasePayment,
 } from "@/lib/demo-store";
 import {
-  createCalendarEventWithMeet,
-  isGoogleConnected,
-} from "@/lib/google-calendar";
+  createCheckoutPreference,
+  isMercadoPagoConfigured,
+} from "@/lib/mercadopago";
+import { getProduct } from "@/lib/demo-store";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
@@ -78,42 +78,17 @@ export async function checkoutAction(
     return { ok: false, error: "Elige un horario para la sesión." };
   }
 
-  await new Promise((r) => setTimeout(r, 800));
+  const product = await getProduct(productId);
+  if (!product) {
+    return { ok: false, error: "Producto no encontrado." };
+  }
 
   try {
-    let meetUrl: string | undefined;
-    let googleEventId: string | undefined;
-
-    if (
-      productType === "session" &&
-      slotStart &&
-      (await isGoogleConnected())
-    ) {
-      const product = await getProduct(productId);
-      const duration = product?.durationMinutes ?? 45;
-      const slotEnd = new Date(
-        new Date(slotStart).getTime() + duration * 60 * 1000,
-      ).toISOString();
-
-      try {
-        const event = await createCalendarEventWithMeet({
-          summary: `Pagate · sesión con ${buyerName}`,
-          description: `Reserva Pagate.\nCliente: ${buyerName} <${buyerEmail}>`,
-          startIso: slotStart,
-          endIso: slotEnd,
-          attendeeEmail: buyerEmail,
-          attendeeName: buyerName,
-        });
-        meetUrl = event.meetUrl;
-        googleEventId = event.eventId;
-      } catch (err) {
-        console.error("[google] create event failed", err);
-        return {
-          ok: false,
-          error:
-            "No se pudo crear el evento en Google Calendar. Reconecta el calendario e intenta de nuevo.",
-        };
-      }
+    if (!isMercadoPagoConfigured()) {
+      return {
+        ok: false,
+        error: "Mercado Pago no está configurado (falta MP_ACCESS_TOKEN).",
+      };
     }
 
     const purchase = await createPurchase({
@@ -121,23 +96,27 @@ export async function checkoutAction(
       buyerName,
       buyerEmail,
       slotStart,
+      status: "pending",
     });
 
-    if (googleEventId || meetUrl) {
-      await updatePurchaseCalendar(purchase.token, { meetUrl, googleEventId });
-    } else if (productType === "session") {
-      const { randomBytes } = await import("crypto");
-      await updatePurchaseCalendar(purchase.token, {
-        meetUrl: `https://meet.google.com/pagate-demo-${randomBytes(3).toString("hex")}`,
-      });
-    }
+    const preference = await createCheckoutPreference({
+      product,
+      purchaseToken: purchase.token,
+      buyerName,
+      buyerEmail,
+      slotStart,
+    });
+
+    await updatePurchasePayment(purchase.token, {
+      mpPreferenceId: preference.id,
+    });
 
     revalidatePath("/dashboard");
-    revalidatePath("/u/camila.nutri");
-    return { ok: true, redirectTo: `/d/${purchase.token}?email=1` };
+    return { ok: true, redirectTo: preference.initPoint };
   } catch (err) {
+    console.error("[checkout]", err);
     const message =
-      err instanceof Error ? err.message : "No se pudo completar el pago mock.";
+      err instanceof Error ? err.message : "No se pudo iniciar el pago.";
     return { ok: false, error: message };
   }
 }

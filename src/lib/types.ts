@@ -38,6 +38,8 @@ export type Creator = {
   googleCalendar?: GoogleCalendarConnection;
 };
 
+export type PurchaseStatus = "pending" | "paid" | "rejected";
+
 export type Purchase = {
   id: string;
   token: string;
@@ -45,7 +47,7 @@ export type Purchase = {
   buyerName: string;
   buyerEmail: string;
   amountClp: number;
-  status: "paid";
+  status: PurchaseStatus;
   downloadsRemaining: number;
   expiresAt: string;
   createdAt: string;
@@ -54,6 +56,8 @@ export type Purchase = {
   slotEnd?: string;
   meetUrl?: string;
   googleEventId?: string;
+  mpPreferenceId?: string;
+  mpPaymentId?: string;
 };
 
 export type DemoStore = {

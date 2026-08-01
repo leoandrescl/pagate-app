@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AddProductForm, AvailabilityForm } from "@/components/forms";
 import { GoogleCalendarCard } from "@/components/google-calendar-card";
+import { MercadoPagoCard } from "@/components/mercadopago-card";
 import { WeekCalendar } from "@/components/week-calendar";
 import { resetDemoAction } from "@/lib/actions";
 import {
@@ -180,6 +181,8 @@ export default async function DashboardPage({ searchParams }: Props) {
           </div>
 
           <div className="space-y-8">
+            <MercadoPagoCard />
+
             <GoogleCalendarCard
               configured={googleReady}
               connected={googleOn}

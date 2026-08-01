@@ -19,9 +19,26 @@ export default async function DownloadPage({ params, searchParams }: Props) {
 
   const { purchase, product } = result;
   const isSession = product.type === "session";
+  const isPaid = purchase.status === "paid";
   const expired = new Date(purchase.expiresAt).getTime() < Date.now();
   const canDownload =
-    !isSession && !expired && purchase.downloadsRemaining > 0;
+    isPaid && !isSession && !expired && purchase.downloadsRemaining > 0;
+
+  if (!isPaid) {
+    return (
+      <div className="atmosphere flex min-h-screen items-center justify-center px-4">
+        <div className="max-w-md rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-8 text-center">
+          <p className="font-display text-2xl">Pago pendiente</p>
+          <p className="mt-3 text-sm text-[var(--ink-muted)]">
+            Esta compra aún no está confirmada por Mercado Pago.
+          </p>
+          <Link href="/u/camila.nutri" className="btn-primary mt-6 inline-flex">
+            Volver a la tienda
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="atmosphere min-h-screen">

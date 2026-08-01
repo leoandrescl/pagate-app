@@ -99,7 +99,10 @@ function normalizeStore(raw: DemoStore): DemoStore {
       ...p,
       type: (p.type ?? "digital") as ProductType,
     })),
-    purchases: raw.purchases ?? [],
+    purchases: (raw.purchases ?? []).map((p) => ({
+      ...p,
+      status: p.status ?? "paid",
+    })),
   };
 }
 
@@ -200,6 +203,7 @@ export async function createPurchase(input: {
   buyerName: string;
   buyerEmail: string;
   slotStart?: string;
+  status?: Purchase["status"];
 }): Promise<Purchase> {
   const store = await readStore();
   const product = store.products.find((p) => p.id === input.productId);
@@ -212,7 +216,9 @@ export async function createPurchase(input: {
       throw new Error("Debes elegir un horario");
     }
     const taken = store.purchases.some(
-      (p) => p.slotStart === input.slotStart && p.status === "paid",
+      (p) =>
+        p.slotStart === input.slotStart &&
+        (p.status === "paid" || p.status === "pending"),
     );
     if (taken) {
       throw new Error("Ese horario ya fue reservado");
@@ -225,6 +231,8 @@ export async function createPurchase(input: {
     ? new Date(new Date(slotStart).getTime() + duration * 60 * 1000).toISOString()
     : undefined;
 
+  const status = input.status ?? "paid";
+
   const purchase: Purchase = {
     id: `pur_${randomBytes(4).toString("hex")}`,
     token: randomBytes(12).toString("hex"),
@@ -232,8 +240,8 @@ export async function createPurchase(input: {
     buyerName: input.buyerName.trim(),
     buyerEmail: input.buyerEmail.trim().toLowerCase(),
     amountClp: product.priceClp,
-    status: "paid",
-    downloadsRemaining: product.type === "digital" ? 5 : 0,
+    status,
+    downloadsRemaining: product.type === "digital" && status === "paid" ? 5 : 0,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     createdAt: new Date().toISOString(),
     slotStart,
@@ -255,6 +263,81 @@ export async function updatePurchaseCalendar(
   if (!purchase) return null;
   if (data.meetUrl) purchase.meetUrl = data.meetUrl;
   if (data.googleEventId) purchase.googleEventId = data.googleEventId;
+  await writeStore(store);
+  return purchase;
+}
+
+export async function updatePurchasePayment(
+  token: string,
+  data: {
+    status?: Purchase["status"];
+    mpPreferenceId?: string;
+    mpPaymentId?: string;
+  },
+): Promise<Purchase | null> {
+  const store = await readStore();
+  const purchase = store.purchases.find((p) => p.token === token);
+  if (!purchase) return null;
+  if (data.status) {
+    purchase.status = data.status;
+    if (data.status === "paid" && purchase.downloadsRemaining === 0) {
+      const product = store.products.find((p) => p.id === purchase.productId);
+      if (product?.type === "digital") {
+        purchase.downloadsRemaining = 5;
+      }
+    }
+  }
+  if (data.mpPreferenceId) purchase.mpPreferenceId = data.mpPreferenceId;
+  if (data.mpPaymentId) purchase.mpPaymentId = data.mpPaymentId;
+  await writeStore(store);
+  return purchase;
+}
+
+export async function upsertPurchaseFromMetadata(input: {
+  token: string;
+  productId: string;
+  buyerName: string;
+  buyerEmail: string;
+  amountClp: number;
+  slotStart?: string;
+  status: Purchase["status"];
+  mpPaymentId?: string;
+}): Promise<Purchase> {
+  const existing = await getPurchaseByToken(input.token);
+  if (existing) {
+    const updated = await updatePurchasePayment(input.token, {
+      status: input.status,
+      mpPaymentId: input.mpPaymentId,
+    });
+    if (updated) return updated;
+  }
+
+  const store = await readStore();
+  const product = store.products.find((p) => p.id === input.productId);
+  const duration = product?.durationMinutes ?? 45;
+  const slotEnd = input.slotStart
+    ? new Date(
+        new Date(input.slotStart).getTime() + duration * 60 * 1000,
+      ).toISOString()
+    : undefined;
+
+  const purchase: Purchase = {
+    id: `pur_${randomBytes(4).toString("hex")}`,
+    token: input.token,
+    productId: input.productId,
+    buyerName: input.buyerName,
+    buyerEmail: input.buyerEmail,
+    amountClp: input.amountClp,
+    status: input.status,
+    downloadsRemaining:
+      product?.type === "digital" && input.status === "paid" ? 5 : 0,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+    slotStart: input.slotStart,
+    slotEnd,
+    mpPaymentId: input.mpPaymentId,
+  };
+  store.purchases.unshift(purchase);
   await writeStore(store);
   return purchase;
 }
@@ -284,7 +367,12 @@ export async function listUpcomingSessions(): Promise<
   const store = await readStore();
   const now = Date.now();
   return store.purchases
-    .filter((p) => p.slotStart && new Date(p.slotStart).getTime() >= now - 60 * 60 * 1000)
+    .filter(
+      (p) =>
+        p.status === "paid" &&
+        p.slotStart &&
+        new Date(p.slotStart).getTime() >= now - 60 * 60 * 1000,
+    )
     .map((purchase) => {
       const product = store.products.find((p) => p.id === purchase.productId);
       return product ? { purchase, product } : null;
@@ -306,6 +394,7 @@ export async function consumeDownload(
 
   const product = store.products.find((p) => p.id === purchase.productId);
   if (!product || product.type !== "digital") return null;
+  if (purchase.status !== "paid") return null;
 
   const expired = new Date(purchase.expiresAt).getTime() < Date.now();
   if (expired || purchase.downloadsRemaining <= 0) {

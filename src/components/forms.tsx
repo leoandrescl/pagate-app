@@ -214,7 +214,12 @@ export function CheckoutForm({
 
   useEffect(() => {
     if (state?.ok && state.redirectTo) {
-      router.push(state.redirectTo);
+      // Checkout Pro (Mercado Pago) u otras URLs absolutas
+      if (state.redirectTo.startsWith("http")) {
+        window.location.href = state.redirectTo;
+      } else {
+        router.push(state.redirectTo);
+      }
     }
   }, [state, router]);
 
@@ -307,7 +312,8 @@ export function CheckoutForm({
         />
       </div>
       <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Demo: el pago simula Webpay / transferencia vía Flow. No se cobra nada real.
+        Pago con Mercado Pago (Checkout Pro). En prueba usa el usuario TEST de MP;
+        la comisión de Pagate es $0 — solo aplica la de Mercado Pago.
       </p>
       {state && !state.ok ? (
         <p className="text-sm text-[var(--coral)]" role="alert">
@@ -320,10 +326,10 @@ export function CheckoutForm({
         className="btn-primary w-full"
       >
         {pending
-          ? "Procesando pago mock…"
+          ? "Redirigiendo a Mercado Pago…"
           : isSession
             ? `Reservar y pagar ${priceLabel}`
-            : `Pagar ${priceLabel}`}
+            : `Pagar con Mercado Pago · ${priceLabel}`}
       </button>
     </form>
   );
