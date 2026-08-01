@@ -98,15 +98,12 @@ export async function createCheckoutPreference(input: {
     );
   }
 
-  // Credenciales de prueba (APP_USR de test_user o token TEST-):
-  // usar sandbox_init_point. init_point (www) deja el botón Pagar gris
-  // o mezcla entornos. Producción real: MP_USE_PRODUCTION=1.
+  // APP_USR de prueba → init_point (www). sandbox.mercadopago.* suele
+  // dar ERR_TOO_MANY_REDIRECTS. Solo forzar sandbox con MP_FORCE_SANDBOX=1
+  // o tokens legacy TEST-.
   const token = getAccessToken();
   const preferSandbox =
-    process.env.MP_USE_PRODUCTION !== "1" &&
-    (process.env.MP_FORCE_SANDBOX === "1" ||
-      token.startsWith("TEST-") ||
-      process.env.MP_TEST_MODE !== "0");
+    process.env.MP_FORCE_SANDBOX === "1" || token.startsWith("TEST-");
   const initPoint = preferSandbox
     ? data.sandbox_init_point || data.init_point
     : data.init_point || data.sandbox_init_point;
