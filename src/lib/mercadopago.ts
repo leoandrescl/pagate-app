@@ -98,7 +98,16 @@ export async function createCheckoutPreference(input: {
     );
   }
 
-  const initPoint = data.sandbox_init_point || data.init_point;
+  // Con credenciales de prueba actuales (APP_USR-*) hay que usar init_point.
+  // Forzar sandbox_init_point mezcla entornos y dispara:
+  // "Una de las partes con la que intentas hacer el pago es de prueba".
+  const token = getAccessToken();
+  const preferSandbox =
+    process.env.MP_FORCE_SANDBOX === "1" || token.startsWith("TEST-");
+  const initPoint = preferSandbox
+    ? data.sandbox_init_point || data.init_point
+    : data.init_point || data.sandbox_init_point;
+
   if (!initPoint) {
     throw new Error("Mercado Pago no devolvió URL de checkout");
   }
