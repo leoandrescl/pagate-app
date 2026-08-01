@@ -98,12 +98,15 @@ export async function createCheckoutPreference(input: {
     );
   }
 
-  // Con credenciales de prueba actuales (APP_USR-*) hay que usar init_point.
-  // Forzar sandbox_init_point mezcla entornos y dispara:
-  // "Una de las partes con la que intentas hacer el pago es de prueba".
+  // Credenciales de prueba (APP_USR de test_user o token TEST-):
+  // usar sandbox_init_point. init_point (www) deja el botón Pagar gris
+  // o mezcla entornos. Producción real: MP_USE_PRODUCTION=1.
   const token = getAccessToken();
   const preferSandbox =
-    process.env.MP_FORCE_SANDBOX === "1" || token.startsWith("TEST-");
+    process.env.MP_USE_PRODUCTION !== "1" &&
+    (process.env.MP_FORCE_SANDBOX === "1" ||
+      token.startsWith("TEST-") ||
+      process.env.MP_TEST_MODE !== "0");
   const initPoint = preferSandbox
     ? data.sandbox_init_point || data.init_point
     : data.init_point || data.sandbox_init_point;
