@@ -416,10 +416,4 @@ export async function resetDemoStore(): Promise<DemoStore> {
   return seed;
 }
 
-export function formatClp(amount: number): string {
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+export { formatClp } from "./format-clp";

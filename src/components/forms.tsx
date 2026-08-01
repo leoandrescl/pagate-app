@@ -8,87 +8,122 @@ import {
   updateAvailabilityAction,
   type ActionResult,
 } from "@/lib/actions";
+import { CouponField, OrderSummary } from "@/components/coupon-field";
+import { InstallmentBadge } from "@/components/installment-badge";
 import { formatSlotChile } from "@/lib/slots";
+import type { CommunityPlatform } from "@/lib/mock-data";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ProductType } from "@/lib/types";
 
 const initial: ActionResult | null = null;
 
+type ProductFormType = ProductType | "community";
+
 export function AddProductForm() {
   const [state, formAction, pending] = useActionState(addProductAction, initial);
-  const [type, setType] = useState<ProductType>("digital");
+  const { addCommunityProduct } = useStoreSettings();
+  const [type, setType] = useState<ProductFormType>("digital");
+  const [communityPlatform, setCommunityPlatform] = useState<CommunityPlatform>("whatsapp");
+  const [communityInvite, setCommunityInvite] = useState("");
+  const [communitySuccess, setCommunitySuccess] = useState(false);
+  const [communityError, setCommunityError] = useState<string | null>(null);
 
-  return (
-    <form action={formAction} className="space-y-4">
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
-          Tipo
-        </label>
-        <div className="flex gap-2">
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm has-[:checked]:border-[var(--teal)] has-[:checked]:bg-[var(--mint)]/40">
-            <input
-              type="radio"
-              name="type"
-              value="digital"
-              checked={type === "digital"}
-              onChange={() => setType("digital")}
-            />
-            PDF / digital
-          </label>
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm has-[:checked]:border-[var(--teal)] has-[:checked]:bg-[var(--mint)]/40">
-            <input
-              type="radio"
-              name="type"
-              value="session"
-              checked={type === "session"}
-              onChange={() => setType("session")}
-            />
-            Sesión 1:1
-          </label>
-        </div>
-      </div>
-      <div>
-        <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
-          Nombre
-        </label>
-        <input
-          id="name"
-          name="name"
-          required
-          placeholder={
-            type === "session"
-              ? "Ej. Mentoría 45 minutos"
-              : "Ej. Guía de finanzas personales"
-          }
-          className="field"
-        />
-      </div>
-      <div>
-        <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
-          Descripción
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          required
-          rows={3}
-          placeholder="Qué recibe el comprador y por qué le sirve."
-          className="field resize-y"
-        />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+  function handleCommunitySubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const name = String(new FormData(form).get("name") ?? "").trim();
+    const description = String(new FormData(form).get("description") ?? "").trim();
+    const priceRaw = String(new FormData(form).get("priceClp") ?? "").replace(/\D/g, "");
+    const priceClp = Number(priceRaw);
+
+    if (!name || name.length < 3) {
+      setCommunityError("Ingresa un nombre para el producto (mín. 3 caracteres).");
+      return;
+    }
+    if (!description || description.length < 10) {
+      setCommunityError("Agrega una descripción corta.");
+      return;
+    }
+    if (!Number.isFinite(priceClp) || priceClp < 1000) {
+      setCommunityError("El precio mínimo demo es $1.000 CLP.");
+      return;
+    }
+    if (!communityInvite.trim()) {
+      setCommunityError("Ingresa el link de invitación.");
+      return;
+    }
+
+    addCommunityProduct({
+      name,
+      description,
+      priceClp,
+      platform: communityPlatform,
+      inviteUrl: communityInvite.trim(),
+    });
+    setCommunityError(null);
+    setCommunitySuccess(true);
+    form.reset();
+    setCommunityInvite("");
+    setTimeout(() => setCommunitySuccess(false), 4000);
+  }
+
+  if (type === "community") {
+    return (
+      <form onSubmit={handleCommunitySubmit} className="space-y-4">
+        <ProductTypeSelector type={type} setType={setType} />
+        <ProductFields type={type} />
         <div>
-          <label htmlFor="priceClp" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
-            Precio (CLP)
+          <label className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+            Plataforma
+          </label>
+          <select
+            value={communityPlatform}
+            onChange={(e) => setCommunityPlatform(e.target.value as CommunityPlatform)}
+            className="field"
+          >
+            <option value="telegram">Telegram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="zoom">Zoom</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="inviteUrl" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+            Link de invitación
           </label>
           <input
-            id="priceClp"
-            name="priceClp"
+            id="inviteUrl"
+            value={communityInvite}
+            onChange={(e) => setCommunityInvite(e.target.value)}
             required
-            inputMode="numeric"
-            placeholder={type === "session" ? "35000" : "7990"}
+            placeholder="https://chat.whatsapp.com/…"
             className="field"
           />
         </div>
+        {communityError ? (
+          <p className="text-sm text-[var(--coral)]" role="alert">{communityError}</p>
+        ) : null}
+        {communitySuccess ? (
+          <p className="text-sm text-[var(--teal-deep)]">
+            Producto de comunidad agregado a la vitrina (local).
+          </p>
+        ) : null}
+        <button type="submit" className="btn-primary w-full sm:w-auto">
+          Publicar acceso a comunidad
+        </button>
+        <p className="text-xs text-[var(--ink-muted)]">
+          // MOCK: se guarda en localStorage, visible en la vitrina pública.
+        </p>
+      </form>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <input type="hidden" name="type" value={type} />
+      <ProductTypeSelector type={type} setType={setType} />
+      <ProductFields type={type} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2" />
         {type === "session" ? (
           <div>
             <label
@@ -117,6 +152,105 @@ export function AddProductForm() {
         {pending ? "Publicando…" : "Publicar producto"}
       </button>
     </form>
+  );
+}
+
+function ProductTypeSelector({
+  type,
+  setType,
+}: {
+  type: ProductFormType;
+  setType: (t: ProductFormType) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+        Tipo
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <label className="flex flex-1 min-w-[7rem] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm has-[:checked]:border-[var(--teal)] has-[:checked]:bg-[var(--mint)]/40">
+          <input
+            type="radio"
+            name="type"
+            value="digital"
+            checked={type === "digital"}
+            onChange={() => setType("digital")}
+          />
+          PDF / digital
+        </label>
+        <label className="flex flex-1 min-w-[7rem] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm has-[:checked]:border-[var(--teal)] has-[:checked]:bg-[var(--mint)]/40">
+          <input
+            type="radio"
+            name="type"
+            value="session"
+            checked={type === "session"}
+            onChange={() => setType("session")}
+          />
+          Sesión 1:1
+        </label>
+        <label className="flex flex-1 min-w-[7rem] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm has-[:checked]:border-[var(--teal)] has-[:checked]:bg-[var(--mint)]/40">
+          <input
+            type="radio"
+            name="type"
+            value="community"
+            checked={type === "community"}
+            onChange={() => setType("community")}
+          />
+          Acceso a comunidad
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function ProductFields({ type }: { type: ProductFormType }) {
+  return (
+    <>
+      <div>
+        <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+          Nombre
+        </label>
+        <input
+          id="name"
+          name="name"
+          required
+          placeholder={
+            type === "session"
+              ? "Ej. Mentoría 45 minutos"
+              : type === "community"
+                ? "Ej. Comunidad de nutrición"
+                : "Ej. Guía de finanzas personales"
+          }
+          className="field"
+        />
+      </div>
+      <div>
+        <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+          Descripción
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          required
+          rows={3}
+          placeholder="Qué recibe el comprador y por qué le sirve."
+          className="field resize-y"
+        />
+      </div>
+      <div>
+        <label htmlFor="priceClp" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
+          Precio (CLP)
+        </label>
+        <input
+          id="priceClp"
+          name="priceClp"
+          required
+          inputMode="numeric"
+          placeholder={type === "session" ? "35000" : type === "community" ? "12990" : "7990"}
+          className="field"
+        />
+      </div>
+    </>
   );
 }
 
@@ -195,22 +329,28 @@ export function CheckoutForm({
   productId,
   productName,
   productType,
+  priceClp,
   priceLabel,
   durationMinutes,
   slots,
   googleConnected = false,
+  isCommunity = false,
 }: {
   productId: string;
   productName: string;
-  productType: ProductType;
+  productType: ProductType | "community";
+  priceClp: number;
   priceLabel: string;
   durationMinutes?: number;
   slots: string[];
   googleConnected?: boolean;
+  isCommunity?: boolean;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(checkoutAction, initial);
   const [selectedSlot, setSelectedSlot] = useState(slots[0] ?? "");
+  const [discountClp, setDiscountClp] = useState(0);
+  const [totalClp, setTotalClp] = useState(priceClp);
 
   useEffect(() => {
     if (state?.ok && state.redirectTo) {
@@ -224,6 +364,7 @@ export function CheckoutForm({
   }, [state, router]);
 
   const isSession = productType === "session";
+  const effectiveTotal = totalClp || priceClp;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -244,7 +385,16 @@ export function CheckoutForm({
         <p className="mt-2 text-2xl font-semibold tracking-tight text-[var(--teal-deep)]">
           {priceLabel}
         </p>
+        <div className="mt-2">
+          <InstallmentBadge amountClp={priceClp} />
+        </div>
       </div>
+
+      {isCommunity ? (
+        <div className="rounded-xl bg-[var(--mint)]/40 px-4 py-3 text-sm text-[var(--teal-deep)]">
+          Recibirás el link de acceso por correo tras la compra.
+        </div>
+      ) : null}
 
       {isSession ? (
         <div>
@@ -282,6 +432,22 @@ export function CheckoutForm({
         </div>
       ) : null}
 
+      <CouponField
+        subtotalClp={priceClp}
+        onApplied={({ discountClp: d, totalClp: t }) => {
+          setDiscountClp(d);
+          setTotalClp(t);
+        }}
+      />
+
+      {discountClp > 0 ? (
+        <OrderSummary
+          subtotalClp={priceClp}
+          discountClp={discountClp}
+          totalClp={effectiveTotal}
+        />
+      ) : null}
+
       <div>
         <label htmlFor="buyerName" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
           Tu nombre
@@ -299,7 +465,9 @@ export function CheckoutForm({
         <label htmlFor="buyerEmail" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
           {isSession
             ? "Email (confirmación de la cita)"
-            : "Email (aquí llega el link de descarga)"}
+            : isCommunity
+              ? "Email (aquí llega el link de acceso)"
+              : "Email (aquí llega el link de descarga)"}
         </label>
         <input
           id="buyerEmail"
@@ -329,7 +497,9 @@ export function CheckoutForm({
           ? "Redirigiendo a Mercado Pago…"
           : isSession
             ? `Reservar y pagar ${priceLabel}`
-            : `Pagar con Mercado Pago · ${priceLabel}`}
+            : discountClp > 0
+              ? `Pagar con Mercado Pago · ${new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(effectiveTotal)}`
+              : `Pagar con Mercado Pago · ${priceLabel}`}
       </button>
     </form>
   );
