@@ -29,17 +29,68 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: #eef6f3;
 }
 
 body {
   margin: 0;
   min-height: 100%;
   color: var(--ink);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(184, 242, 200, 0.55), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(228, 87, 46, 0.12), transparent 45%),
-    linear-gradient(165deg, #f7fcfa 0%, #e8f4ef 48%, #f4f8f6 100%);
+  /* Base sólida: el ambiente vive en body::before (fixed) para no cortar al scroll */
+  background-color: #eef6f3;
   font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* Una sola capa de atmósfera para toda la app — sin bandas ni cortes por sección */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 8% 0%,
+      rgba(184, 242, 200, 0.5),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 96% 8%,
+      rgba(215, 235, 227, 0.55),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 92% 62%,
+      rgba(228, 87, 46, 0.055),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 65% 50% at 12% 88%,
+      rgba(31, 138, 114, 0.1),
+      transparent 58%
+    ),
+    linear-gradient(165deg, #f8fcfa 0%, #eef6f3 45%, #f2f7f5 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.85;
+  background:
+    radial-gradient(
+      ellipse 42% 32% at 22% 18%,
+      rgba(31, 138, 114, 0.11),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 38% 28% at 88% 28%,
+      rgba(228, 87, 46, 0.045),
+      transparent 70%
+    );
+  animation: drift 18s ease-in-out infinite alternate;
 }
 
 .font-display {
@@ -47,21 +98,11 @@ body {
   letter-spacing: -0.03em;
 }
 
+/* Contenedor de página: ya no pinta ni recorta el fondo (evita los “cortes”) */
 .atmosphere {
   position: relative;
-  overflow: hidden;
-}
-
-.atmosphere::before {
-  content: "";
-  position: absolute;
-  inset: -20% 20% auto -10%;
-  height: 60%;
-  background:
-    radial-gradient(circle at 30% 40%, rgba(31, 138, 114, 0.18), transparent 55%),
-    radial-gradient(circle at 70% 20%, rgba(228, 87, 46, 0.1), transparent 50%);
-  pointer-events: none;
-  animation: drift 14s ease-in-out infinite alternate;
+  isolation: isolate;
+  min-height: 100%;
 }
 
 @keyframes drift {
@@ -69,7 +110,7 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
-    transform: translate3d(2%, 3%, 0) scale(1.05);
+    transform: translate3d(1.5%, 2%, 0) scale(1.04);
   }
 }
 
