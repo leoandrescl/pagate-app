@@ -23,6 +23,7 @@ export type CartItem = {
 };
 
 type CartContextValue = {
+  username: string;
   items: CartItem[];
   itemCount: number;
   subtotalClp: number;
@@ -131,6 +132,7 @@ export function CartProvider({
 
   const value = useMemo(
     () => ({
+      username,
       items,
       itemCount,
       subtotalClp,
@@ -142,6 +144,7 @@ export function CartProvider({
       setSessionSlot,
     }),
     [
+      username,
       items,
       itemCount,
       subtotalClp,

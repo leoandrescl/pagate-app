@@ -42,7 +42,10 @@ export default async function CartCheckoutPage() {
   return (
     <div className="atmosphere min-h-screen">
       <header className="shell flex items-center justify-between py-5">
-        <Link href="/u/camila.nutri/carrito" className="text-sm font-semibold text-[var(--ink-muted)]">
+        <Link
+          href={`/u/${creator.username}/carrito`}
+          className="text-sm font-semibold text-[var(--ink-muted)]"
+        >
           ← Volver al carrito
         </Link>
         <p className="font-display text-lg font-semibold">Pagate</p>

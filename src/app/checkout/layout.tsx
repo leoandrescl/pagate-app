@@ -1,13 +1,24 @@
 import { DashboardStoreProvider } from "@/components/store-providers";
+import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
+import { getCreator } from "@/lib/demo-store";
 
-export default function CheckoutLayout({
+export const dynamic = "force-dynamic";
+
+export default async function CheckoutLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const creator = await getCreator();
+
   return (
-    <DashboardStoreProvider headline="" bio="">
-      {children}
+    <DashboardStoreProvider
+      headline={creator.headline}
+      bio={creator.bio}
+    >
+      <CartCheckoutProviders username={creator.username}>
+        {children}
+      </CartCheckoutProviders>
     </DashboardStoreProvider>
   );
 }

@@ -25,6 +25,28 @@ const SETTINGS_KEY = "pagate-store-settings";
 const COUPONS_KEY = "pagate-creator-coupons";
 const COMMUNITY_KEY = "pagate-community-products";
 
+/** Tras crear tienda: limpia settings demo de Camila y deja headline/bio nuevos. */
+export function seedClientStoreSettings(input: {
+  headline: string;
+  bio: string;
+}): void {
+  if (typeof window === "undefined") return;
+  const settings: StoreSettings = {
+    bannerUrl: DEFAULT_BANNER_URL,
+    bio: input.bio,
+    headline: input.headline,
+    socialLinks: {
+      instagram: "",
+      tiktok: "",
+      whatsapp: "",
+    },
+    brandColor: DEFAULT_BRAND_COLOR.value,
+  };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(COUPONS_KEY, "[]");
+  localStorage.setItem(COMMUNITY_KEY, "[]");
+}
+
 type StoreSettingsContextValue = {
   settings: StoreSettings;
   updateSettings: (patch: Partial<StoreSettings>) => void;

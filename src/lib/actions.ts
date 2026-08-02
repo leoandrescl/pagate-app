@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import {
   createProduct,
   createPurchase,
+  createStore,
+  getCreator,
+  getProduct,
+  isValidUsername,
+  normalizeUsername,
   resetDemoStore,
   updateAvailability,
   updatePurchasePayment,
@@ -12,12 +17,116 @@ import {
   createCheckoutPreference,
   isMercadoPagoConfigured,
 } from "@/lib/mercadopago";
-import { getProduct } from "@/lib/demo-store";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
-  | { ok: true; redirectTo?: string }
+  | { ok: true; redirectTo?: string; username?: string }
   | { ok: false; error: string };
+
+async function revalidateCreatorPaths(username?: string) {
+  const u = username ?? (await getCreator()).username;
+  revalidatePath("/dashboard");
+  revalidatePath("/crear");
+  revalidatePath(`/u/${u}`);
+  revalidatePath(`/u/${u}/carrito`);
+}
+
+export async function createStoreAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const username = normalizeUsername(String(formData.get("username") ?? ""));
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const headline = String(formData.get("headline") ?? "").trim();
+  const bio = String(formData.get("bio") ?? "").trim();
+  const addProduct = String(formData.get("addFirstProduct") ?? "") === "1";
+
+  if (!isValidUsername(username)) {
+    return {
+      ok: false,
+      error: "Usuario inválido. Usa 3–24 caracteres: letras minúsculas, números y puntos (ej. ana.coach).",
+    };
+  }
+  if (displayName.length < 2) {
+    return { ok: false, error: "Ingresa tu nombre público." };
+  }
+  if (headline.length < 4) {
+    return { ok: false, error: "Escribe un headline corto (mín. 4 caracteres)." };
+  }
+  if (bio.length < 10) {
+    return { ok: false, error: "Agrega una bio breve (mín. 10 caracteres)." };
+  }
+
+  let firstProduct:
+    | {
+        name: string;
+        description: string;
+        priceClp: number;
+        type: ProductType;
+        durationMinutes?: number;
+      }
+    | undefined;
+
+  if (addProduct) {
+    const name = String(formData.get("productName") ?? "").trim();
+    const description = String(formData.get("productDescription") ?? "").trim();
+    const priceRaw = String(formData.get("productPriceClp") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    const priceClp = Number(priceRaw);
+    const type =
+      (String(formData.get("productType") ?? "digital") as ProductType) ||
+      "digital";
+    const durationRaw = Number(
+      String(formData.get("productDurationMinutes") ?? "45"),
+    );
+
+    if (!name || name.length < 3) {
+      return {
+        ok: false,
+        error: "Nombre del producto: mínimo 3 caracteres.",
+      };
+    }
+    if (!description || description.length < 10) {
+      return { ok: false, error: "Descripción del producto: mínimo 10 caracteres." };
+    }
+    if (!Number.isFinite(priceClp) || priceClp < 1000) {
+      return { ok: false, error: "El precio mínimo demo es $1.000 CLP." };
+    }
+    if (type !== "digital" && type !== "session") {
+      return { ok: false, error: "Tipo de producto inválido." };
+    }
+
+    firstProduct = {
+      name,
+      description,
+      priceClp,
+      type,
+      durationMinutes: type === "session" ? durationRaw || 45 : undefined,
+    };
+  }
+
+  try {
+    const store = await createStore({
+      username,
+      displayName,
+      headline,
+      bio,
+      firstProduct,
+    });
+    await revalidateCreatorPaths(store.creator.username);
+    return {
+      ok: true,
+      redirectTo: "/dashboard",
+      username: store.creator.username,
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo crear la tienda.";
+    return { ok: false, error: message };
+  }
+}
 
 export async function addProductAction(
   _prev: ActionResult | null,
@@ -50,8 +159,7 @@ export async function addProductAction(
     type,
     durationMinutes: type === "session" ? durationRaw || 45 : undefined,
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/u/camila.nutri");
+  await revalidateCreatorPaths();
   return { ok: true };
 }
 
@@ -140,13 +248,16 @@ export async function updateAvailabilityAction(
   }
 
   await updateAvailability({ startHour, endHour, slotMinutes });
-  revalidatePath("/dashboard");
-  revalidatePath("/u/camila.nutri");
+  await revalidateCreatorPaths();
   return { ok: true };
 }
 
 export async function resetDemoAction(): Promise<void> {
+  const previousUsername = (await getCreator().catch(() => null))?.username;
   await resetDemoStore();
-  revalidatePath("/dashboard");
-  revalidatePath("/u/camila.nutri");
+  if (previousUsername && previousUsername !== "camila.nutri") {
+    revalidatePath(`/u/${previousUsername}`);
+    revalidatePath(`/u/${previousUsername}/carrito`);
+  }
+  await revalidateCreatorPaths("camila.nutri");
 }

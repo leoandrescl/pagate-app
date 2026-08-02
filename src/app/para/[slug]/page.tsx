@@ -73,9 +73,12 @@ export default async function VerticalPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-12">
-          <Link href="/dashboard" className="btn-primary">
-            Abrir demo del creador
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Link href="/crear" className="btn-primary">
+            Crear tu tienda
+          </Link>
+          <Link href="/u/camila.nutri" className="btn-ghost">
+            Ver demo
           </Link>
         </div>
       </main>

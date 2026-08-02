@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatClp } from "@/lib/demo-store";
+import { formatClp, getCreator } from "@/lib/demo-store";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,7 @@ type Props = {
 export default async function CartConfirmPage({ searchParams }: Props) {
   const { email, name, total } = await searchParams;
   const totalClp = Number(total) || 0;
+  const creator = await getCreator();
 
   return (
     <div className="atmosphere min-h-screen">
@@ -49,7 +50,10 @@ export default async function CartConfirmPage({ searchParams }: Props) {
             // MOCK: checkout multi-producto sin persistencia en backend.
           </p>
 
-          <Link href="/u/camila.nutri" className="btn-primary mt-8 block w-full text-center">
+          <Link
+            href={`/u/${creator.username}`}
+            className="btn-primary mt-8 block w-full text-center"
+          >
             Volver a la tienda
           </Link>
         </div>

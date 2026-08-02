@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCreator } from "@/lib/demo-store";
 
 type Props = {
   searchParams: Promise<{ status?: string; token?: string }>;
@@ -6,6 +7,7 @@ type Props = {
 
 export default async function MpResultPage({ searchParams }: Props) {
   const { status, token } = await searchParams;
+  const creator = await getCreator();
   const title =
     status === "pending"
       ? "Pago pendiente"
@@ -31,7 +33,7 @@ export default async function MpResultPage({ searchParams }: Props) {
               Ver comprobante
             </Link>
           ) : null}
-          <Link href="/u/camila.nutri" className="btn-ghost">
+          <Link href={`/u/${creator.username}`} className="btn-ghost">
             Volver a la tienda
           </Link>
         </div>

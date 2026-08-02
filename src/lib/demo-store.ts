@@ -416,4 +416,93 @@ export async function resetDemoStore(): Promise<DemoStore> {
   return seed;
 }
 
+const USERNAME_RE = /^[a-z0-9]([a-z0-9.]{1,22}[a-z0-9])?$/;
+
+export function normalizeUsername(raw: string): string {
+  return raw.trim().toLowerCase().replace(/[^a-z0-9.]/g, "");
+}
+
+export function isValidUsername(username: string): boolean {
+  return USERNAME_RE.test(username) && username.length >= 3 && username.length <= 24;
+}
+
+export function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "??";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+export async function createStore(input: {
+  username: string;
+  displayName: string;
+  headline: string;
+  bio: string;
+  firstProduct?: {
+    name: string;
+    description: string;
+    priceClp: number;
+    type: ProductType;
+    durationMinutes?: number;
+  };
+}): Promise<DemoStore> {
+  const username = normalizeUsername(input.username);
+  if (!isValidUsername(username)) {
+    throw new Error(
+      "Usuario inválido. Usa 3–24 caracteres: letras, números y puntos.",
+    );
+  }
+
+  const displayName = input.displayName.trim();
+  const headline = input.headline.trim();
+  const bio = input.bio.trim();
+  if (displayName.length < 2) {
+    throw new Error("Ingresa tu nombre público.");
+  }
+  if (headline.length < 4) {
+    throw new Error("Escribe un headline corto (mín. 4 caracteres).");
+  }
+  if (bio.length < 10) {
+    throw new Error("Agrega una bio breve (mín. 10 caracteres).");
+  }
+
+  const creatorId = `creator_${randomBytes(4).toString("hex")}`;
+  const creator: Creator = {
+    id: creatorId,
+    username,
+    displayName,
+    bio,
+    headline,
+    avatarInitials: initialsFromName(displayName),
+    availability: { ...DEFAULT_AVAILABILITY },
+  };
+
+  const products: Product[] = [];
+  if (input.firstProduct) {
+    const isSession = input.firstProduct.type === "session";
+    products.push({
+      id: `prod_${randomBytes(4).toString("hex")}`,
+      creatorId,
+      type: input.firstProduct.type,
+      name: input.firstProduct.name.trim(),
+      description: input.firstProduct.description.trim(),
+      priceClp: Math.max(0, Math.round(input.firstProduct.priceClp)),
+      durationMinutes: isSession
+        ? input.firstProduct.durationMinutes ?? 45
+        : undefined,
+      fileName: isSession ? undefined : "guia-meal-prep-pagate.pdf",
+      filePath: isSession ? undefined : "/demo/guia-meal-prep-pagate.pdf",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  const store: DemoStore = {
+    creator,
+    products,
+    purchases: [],
+  };
+  await writeStore(store);
+  return store;
+}
+
 export { formatClp } from "./format-clp";

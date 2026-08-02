@@ -38,12 +38,12 @@ const USE_CASES = [
 
 const STEPS = [
   {
-    title: "Crea tu cuenta",
-    body: "Ingresa en segundos. No necesitas tarjeta de crédito.",
+    title: "Crea tu tienda",
+    body: "Elige tu usuario y publícala en segundos. No necesitas tarjeta de crédito.",
   },
   {
-    title: "Configura tu tienda",
-    body: "Elige tu usuario, sube tu foto, escribe una descripción y agrega tus redes sociales.",
+    title: "Configura tu perfil",
+    body: "Escribe tu headline, bio y agrega tus redes. Tu link queda listo para la bio de Instagram.",
   },
   {
     title: "Conecta tus herramientas",
@@ -326,15 +326,15 @@ export function LandingPage() {
             productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
           </p>
           <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
-            <Link href="/dashboard" className="btn-primary">
-              Abrir demo del creador
+            <Link href="/crear" className="btn-primary">
+              Crear tu tienda
             </Link>
             <Link href="/u/camila.nutri" className="btn-ghost">
-              Comprar como cliente
+              Ver tienda demo
             </Link>
           </div>
           <p className="mt-6 text-sm text-[var(--ink-muted)]">
-            Demo local sin pasarelas reales · pagos mock · sin comisión de plataforma
+            Demo · Mercado Pago de prueba · sin comisión de plataforma
           </p>
         </section>
 
@@ -600,9 +600,12 @@ export function LandingPage() {
           <h2 className="font-display text-3xl leading-tight text-[var(--ink)] sm:text-5xl">
             Deja de hacer de secretario en cada venta
           </h2>
-          <div className="mt-8">
-            <Link href="/dashboard" className="btn-primary">
-              Abrir demo del creador
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/crear" className="btn-primary">
+              Crear tu tienda
+            </Link>
+            <Link href="/dashboard" className="btn-ghost">
+              Ver panel demo
             </Link>
           </div>
         </section>

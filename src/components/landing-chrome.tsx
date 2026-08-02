@@ -15,11 +15,11 @@ export function LandingHeader() {
         <a href="/#precios" className="btn-ghost hidden text-sm sm:inline-flex">
           Precios
         </a>
-        <Link href="/dashboard" className="btn-ghost text-sm">
-          Ver panel
+        <Link href="/u/camila.nutri" className="btn-ghost text-sm">
+          Ver demo
         </Link>
-        <Link href="/u/camila.nutri" className="btn-primary text-sm">
-          Ver tienda demo
+        <Link href="/crear" className="btn-primary text-sm">
+          Crear tu tienda
         </Link>
       </nav>
     </header>

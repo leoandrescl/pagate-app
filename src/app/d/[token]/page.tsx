@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatClp, getPurchaseByToken } from "@/lib/demo-store";
+import { formatClp, getCreator, getPurchaseByToken } from "@/lib/demo-store";
 import { DownloadButton } from "@/components/download-button";
 import { syncPurchaseFromMercadoPago } from "@/lib/fulfill-payment";
 import { formatSlotRange } from "@/lib/slots";
@@ -27,6 +27,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
 
   if (!result) notFound();
 
+  const creator = await getCreator();
+  const storeHref = `/u/${creator.username}`;
   const { purchase, product } = result;
   const isSession = product.type === "session";
   const isPaid = purchase.status === "paid";
@@ -42,7 +44,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
           <p className="mt-3 text-sm text-[var(--ink-muted)]">
             Esta compra aún no está confirmada por Mercado Pago.
           </p>
-          <Link href="/u/camila.nutri" className="btn-primary mt-6 inline-flex">
+          <Link href={storeHref} className="btn-primary mt-6 inline-flex">
             Volver a la tienda
           </Link>
         </div>
@@ -146,7 +148,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
             </>
           ) : (
             <div className="mt-8">
-              <Link href="/u/camila.nutri" className="btn-primary w-full">
+              <Link href={storeHref} className="btn-primary w-full">
                 Volver a la tienda
               </Link>
             </div>

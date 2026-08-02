@@ -28,11 +28,14 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   const isCommunityMock =
     typeQuery === "community" || productId.startsWith("mock_comm");
 
+  const creatorForLinks = await getCreator();
+  const storeHref = `/u/${creatorForLinks.username}`;
+
   if (isCommunityMock) {
     return (
       <div className="atmosphere min-h-screen">
         <header className="shell flex items-center justify-between py-5">
-          <Link href="/u/camila.nutri" className="text-sm font-semibold text-[var(--ink-muted)]">
+          <Link href={storeHref} className="text-sm font-semibold text-[var(--ink-muted)]">
             ← Volver a la tienda
           </Link>
           <p className="font-display text-lg font-semibold">Pagate</p>
@@ -52,7 +55,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
   const [product, creator, store] = await Promise.all([
     getProduct(productId),
-    getCreator(),
+    Promise.resolve(creatorForLinks),
     getStore(),
   ]);
   if (!product) notFound();
@@ -81,7 +84,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   return (
     <div className="atmosphere min-h-screen">
       <header className="shell flex items-center justify-between py-5">
-        <Link href="/u/camila.nutri" className="text-sm font-semibold text-[var(--ink-muted)]">
+        <Link href={storeHref} className="text-sm font-semibold text-[var(--ink-muted)]">
           ← Volver a la tienda
         </Link>
         <p className="font-display text-lg font-semibold">Pagate</p>

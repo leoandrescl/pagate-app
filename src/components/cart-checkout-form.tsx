@@ -15,7 +15,14 @@ type Props = {
 
 export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
   const router = useRouter();
-  const { items, subtotalClp, sessionSlots, setSessionSlot, clearCart } = useCart();
+  const {
+    username,
+    items,
+    subtotalClp,
+    sessionSlots,
+    setSessionSlot,
+    clearCart,
+  } = useCart();
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(subtotalClp);
   const [buyerName, setBuyerName] = useState("");
@@ -34,7 +41,10 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
     return (
       <p className="text-sm text-[var(--ink-muted)]">
         No hay productos en el carrito.{" "}
-        <a href="/u/camila.nutri" className="text-[var(--teal-deep)] underline">
+        <a
+          href={`/u/${username}`}
+          className="text-[var(--teal-deep)] underline"
+        >
           Volver a la tienda
         </a>
       </p>
