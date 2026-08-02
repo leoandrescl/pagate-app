@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LandingFooter, LandingHeader } from "@/components/landing-chrome";
 import { comparisons } from "@/data/comparisons";
-import { BRAND_COLOR_PRESETS } from "@/lib/mock-data";
+import {
+  BRAND_COLOR_PRESETS,
+  DEFAULT_BRAND_COLOR,
+  brandThemeStyle,
+  type BrandColorPreset,
+} from "@/lib/mock-data";
+
+const LANDING_BRAND_KEY = "pagate-landing-brand";
 
 const USE_CASES = [
   {
@@ -308,9 +315,35 @@ function AccordionItem({
 export function LandingPage() {
   const [useOpen, setUseOpen] = useState(0);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
+  const [brand, setBrand] = useState<BrandColorPreset>(DEFAULT_BRAND_COLOR);
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(LANDING_BRAND_KEY);
+      if (!saved) return;
+      const found = BRAND_COLOR_PRESETS.find((p) => p.id === saved);
+      if (found) setBrand(found);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const themeStyle = useMemo(() => brandThemeStyle(brand), [brand]);
+
+  function selectBrand(preset: BrandColorPreset) {
+    setBrand(preset);
+    try {
+      sessionStorage.setItem(LANDING_BRAND_KEY, preset.id);
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
-    <div className="atmosphere min-h-screen">
+    <div
+      className="atmosphere min-h-screen transition-[background-color] duration-300"
+      style={themeStyle}
+    >
       <LandingHeader />
 
       <main className="shell relative z-[1] pb-8 pt-10 sm:pt-16">
@@ -492,24 +525,48 @@ export function LandingPage() {
         </section>
 
         {/* 2.7 Personalización */}
-        <section className="mt-20">
+        <section className="mt-20" id="estilo">
           <SectionHeading
             title="Tu tienda, tu estilo"
-            subtitle="Elige colores para que tu tienda hable de tu marca, no de la plataforma."
+            subtitle="Elige un color y mira cómo cambia botones, badges y acentos en esta página. El texto oscuro se mantiene legible."
           />
           <div className="mt-8 flex flex-wrap gap-3">
-            {BRAND_COLOR_PRESETS.map((preset) => (
-              <div key={preset.id} className="flex flex-col items-center gap-2">
-                <div
-                  className="h-14 w-14 rounded-full border-2 border-white shadow-[0_8px_24px_rgba(7,26,23,0.12)] ring-1 ring-[var(--line)]"
-                  style={{ backgroundColor: preset.value }}
-                  title={preset.label}
-                  aria-label={preset.label}
-                />
-                <span className="text-xs text-[var(--ink-muted)]">{preset.label}</span>
-              </div>
-            ))}
+            {BRAND_COLOR_PRESETS.map((preset) => {
+              const active = brand.id === preset.id;
+              return (
+                <div key={preset.id} className="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => selectBrand(preset)}
+                    className={`h-14 w-14 rounded-full border-2 border-white shadow-[0_8px_24px_rgba(7,26,23,0.12)] transition-transform duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--teal-deep)] ${
+                      active
+                        ? "scale-105 ring-2 ring-[var(--teal-deep)] ring-offset-2 ring-offset-[var(--fog)]"
+                        : "ring-1 ring-[var(--line)]"
+                    }`}
+                    style={{ backgroundColor: preset.value }}
+                    title={preset.label}
+                    aria-label={`Aplicar color ${preset.label}`}
+                    aria-pressed={active}
+                  />
+                  <span
+                    className={`text-xs ${
+                      active
+                        ? "font-semibold text-[var(--teal-deep)]"
+                        : "text-[var(--ink-muted)]"
+                    }`}
+                  >
+                    {preset.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+          <p className="mt-5 max-w-xl text-sm text-[var(--ink-muted)]">
+            Vista previa en vivo · color activo:{" "}
+            <span className="font-semibold text-[var(--teal-deep)]">
+              {brand.label}
+            </span>
+          </p>
         </section>
 
         {/* 2.8 Precios */}

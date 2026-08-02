@@ -58,6 +58,8 @@ export const MOCK_COMMUNITY_PRODUCT: MockCommunityProduct = {
   createdAt: new Date().toISOString(),
 };
 
+import type { CSSProperties } from "react";
+
 export type SocialLinks = {
   instagram?: string;
   tiktok?: string;
@@ -88,6 +90,8 @@ export const BRAND_COLOR_PRESETS = [
 
 export const DEFAULT_BRAND_COLOR = BRAND_COLOR_PRESETS[0];
 
+export type BrandColorPreset = (typeof BRAND_COLOR_PRESETS)[number];
+
 export function getBrandDeep(color: string): string {
   const preset = BRAND_COLOR_PRESETS.find((p) => p.value === color);
   return preset?.deep ?? DEFAULT_BRAND_COLOR.deep;
@@ -98,4 +102,39 @@ export function brandGlow(color: string): string {
   const g = parseInt(color.slice(3, 5), 16);
   const b = parseInt(color.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, 0.35)`;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace("#", "");
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+/** Mezcla un color con blanco (amount 0–1 = % de blanco). */
+export function mixHexWithWhite(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const t = Math.min(1, Math.max(0, amount));
+  const nr = Math.round(r + (255 - r) * t);
+  const ng = Math.round(g + (255 - g) * t);
+  const nb = Math.round(b + (255 - b) * t);
+  return `#${nr.toString(16).padStart(2, "0")}${ng.toString(16).padStart(2, "0")}${nb.toString(16).padStart(2, "0")}`;
+}
+
+/** Variables CSS de marca con tintes claros para fondos/badges (texto oscuro sigue legible). */
+export function brandThemeStyle(preset: BrandColorPreset): CSSProperties {
+  const mint = mixHexWithWhite(preset.value, 0.72);
+  const fog = mixHexWithWhite(preset.value, 0.94);
+  const sand = mixHexWithWhite(preset.value, 0.88);
+  return {
+    "--teal": preset.value,
+    "--teal-deep": preset.deep,
+    "--glow": brandGlow(preset.value),
+    "--mint": mint,
+    "--fog": fog,
+    "--sand": sand,
+    "--background": fog,
+  } as CSSProperties;
 }

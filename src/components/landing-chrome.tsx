@@ -4,7 +4,7 @@ import { verticals } from "@/data/verticals";
 
 export function LandingHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[#eef6f3]/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[var(--fog)]/85 backdrop-blur-md transition-[background-color,border-color] duration-300">
       <div className="shell flex items-center justify-between py-4 sm:py-5">
         <Link href="/" className="font-display text-2xl font-semibold text-[var(--ink)]">
           Pagate

@@ -145,12 +145,16 @@ body::after {
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--teal-deep), var(--teal));
-  color: white;
+  color: #fff;
   font-weight: 600;
   padding: 0.85rem 1.35rem;
   text-decoration: none;
   box-shadow: 0 10px 30px var(--glow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
+    background 0.3s ease;
   cursor: pointer;
 }
 
