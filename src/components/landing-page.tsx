@@ -341,7 +341,7 @@ export function LandingPage() {
 
   return (
     <div
-      className="atmosphere min-h-screen transition-[background-color] duration-300"
+      className="atmosphere relative z-[1] min-h-screen transition-[background-color] duration-300"
       style={themeStyle}
     >
       <LandingHeader />

@@ -98,9 +98,7 @@ export function getBrandDeep(color: string): string {
 }
 
 export function brandGlow(color: string): string {
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
+  const { r, g, b } = hexToRgb(color);
   return `rgba(${r}, ${g}, ${b}, 0.35)`;
 }
 
@@ -113,6 +111,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 /** Mezcla un color con blanco (amount 0–1 = % de blanco). */
 export function mixHexWithWhite(hex: string, amount: number): string {
   const { r, g, b } = hexToRgb(hex);
@@ -123,11 +126,14 @@ export function mixHexWithWhite(hex: string, amount: number): string {
   return `#${nr.toString(16).padStart(2, "0")}${ng.toString(16).padStart(2, "0")}${nb.toString(16).padStart(2, "0")}`;
 }
 
-/** Variables CSS de marca con tintes claros para fondos/badges (texto oscuro sigue legible). */
+/** Variables CSS + fondo teñido (opaco) para que el cambio de marca se note al scroll. */
 export function brandThemeStyle(preset: BrandColorPreset): CSSProperties {
-  const mint = mixHexWithWhite(preset.value, 0.72);
-  const fog = mixHexWithWhite(preset.value, 0.94);
-  const sand = mixHexWithWhite(preset.value, 0.88);
+  const mint = mixHexWithWhite(preset.value, 0.68);
+  const fog = mixHexWithWhite(preset.value, 0.9);
+  const sand = mixHexWithWhite(preset.value, 0.82);
+  const wash = mixHexWithWhite(preset.value, 0.86);
+  const deepWash = mixHexWithWhite(preset.deep, 0.9);
+
   return {
     "--teal": preset.value,
     "--teal-deep": preset.deep,
@@ -136,5 +142,14 @@ export function brandThemeStyle(preset: BrandColorPreset): CSSProperties {
     "--fog": fog,
     "--sand": sand,
     "--background": fog,
+    backgroundColor: fog,
+    backgroundImage: [
+      `radial-gradient(ellipse 75% 55% at 5% -5%, ${hexToRgba(preset.value, 0.34)}, transparent 58%)`,
+      `radial-gradient(ellipse 60% 45% at 100% 0%, ${hexToRgba(preset.deep, 0.22)}, transparent 55%)`,
+      `radial-gradient(ellipse 50% 40% at 90% 65%, ${hexToRgba(preset.value, 0.16)}, transparent 58%)`,
+      `radial-gradient(ellipse 70% 50% at 8% 95%, ${hexToRgba(preset.deep, 0.14)}, transparent 55%)`,
+      `linear-gradient(165deg, ${wash} 0%, ${fog} 42%, ${deepWash} 100%)`,
+    ].join(", "),
+    backgroundAttachment: "fixed",
   } as CSSProperties;
 }
