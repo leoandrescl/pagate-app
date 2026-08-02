@@ -4,24 +4,26 @@ import { verticals } from "@/data/verticals";
 
 export function LandingHeader() {
   return (
-    <header className="shell relative z-[1] flex items-center justify-between py-6">
-      <Link href="/" className="font-display text-2xl font-semibold text-[var(--ink)]">
-        Pagate
-      </Link>
-      <nav className="flex items-center gap-2 sm:gap-3">
-        <a href="/#beneficios" className="btn-ghost hidden text-sm sm:inline-flex">
-          Beneficios
-        </a>
-        <a href="/#precios" className="btn-ghost hidden text-sm sm:inline-flex">
-          Precios
-        </a>
-        <Link href="/u/camila.nutri" className="btn-ghost text-sm">
-          Ver demo
+    <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[#eef6f3]/80 backdrop-blur-md">
+      <div className="shell flex items-center justify-between py-4 sm:py-5">
+        <Link href="/" className="font-display text-2xl font-semibold text-[var(--ink)]">
+          Pagate
         </Link>
-        <Link href="/crear" className="btn-primary text-sm">
-          Crear tu tienda
-        </Link>
-      </nav>
+        <nav className="flex items-center gap-2 sm:gap-3">
+          <a href="/#beneficios" className="btn-ghost hidden text-sm sm:inline-flex">
+            Beneficios
+          </a>
+          <a href="/#precios" className="btn-ghost hidden text-sm sm:inline-flex">
+            Precios
+          </a>
+          <Link href="/u/camila.nutri" className="btn-ghost text-sm">
+            Ver demo
+          </Link>
+          <Link href="/crear" className="btn-primary text-sm">
+            Crear tu tienda
+          </Link>
+        </nav>
+      </div>
     </header>
   );
 }

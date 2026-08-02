@@ -6,16 +6,18 @@ export const dynamic = "force-dynamic";
 export default function CrearTiendaPage() {
   return (
     <div className="atmosphere min-h-screen">
-      <header className="shell relative z-[1] flex items-center justify-between py-6">
-        <Link
-          href="/"
-          className="font-display text-2xl font-semibold text-[var(--ink)]"
-        >
-          Pagate
-        </Link>
-        <Link href="/u/camila.nutri" className="btn-ghost text-sm">
-          Ver demo
-        </Link>
+      <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[#eef6f3]/80 backdrop-blur-md">
+        <div className="shell flex items-center justify-between py-4 sm:py-5">
+          <Link
+            href="/"
+            className="font-display text-2xl font-semibold text-[var(--ink)]"
+          >
+            Pagate
+          </Link>
+          <Link href="/u/camila.nutri" className="btn-ghost text-sm">
+            Ver demo
+          </Link>
+        </div>
       </header>
 
       <main className="shell relative z-[1] max-w-lg pb-20 pt-4 sm:pt-8">
