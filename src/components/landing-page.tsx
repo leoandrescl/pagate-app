@@ -277,15 +277,30 @@ function AccordionItem({
       >
         <span className="font-display text-xl text-[var(--ink)] sm:text-2xl">{title}</span>
         <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/70 text-lg text-[var(--ink-muted)] transition ${
-            open ? "rotate-45" : ""
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/70 text-lg text-[var(--ink-muted)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+            open ? "rotate-45" : "rotate-0"
           }`}
           aria-hidden
         >
           +
         </span>
       </button>
-      {open ? <div className="pb-5 text-sm leading-relaxed text-[var(--ink-muted)] sm:text-base">{children}</div> : null}
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className={`pb-5 text-sm leading-relaxed text-[var(--ink-muted)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:text-base ${
+              open
+                ? "translate-y-0 opacity-100 delay-75"
+                : "-translate-y-1.5 opacity-0"
+            }`}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
