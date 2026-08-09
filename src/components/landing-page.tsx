@@ -15,10 +15,10 @@ const LANDING_BRAND_KEY = "pagate-landing-brand";
 
 const USE_CASES = [
   {
-    title: "Creadores de contenido",
-    sells: "guías, plantillas, presets, packs, clases grabadas",
+    title: "Tarotistas - terapias esotéricas",
+    sells: "lecturas, sesiones 1:1, packs de cartas, guías y talleres grabados",
     helps:
-      "convertir lo que ya sabes hacer en un producto vendible y entregable sin fricción.",
+      "cobrar tus sesiones y entregables en un solo link, sin coordinar por WhatsApp ni enviar PDFs a mano.",
   },
   {
     title: "Psicólogos / terapeutas",
@@ -123,7 +123,7 @@ const FEATURES = [
 const FREE_PLAN = [
   "Tu tienda en pagate.cl/usuario",
   "Todos los tipos de producto",
-  "Cobro directo por Webpay o transferencia",
+  "Cobro directo por MercadoPago",
   "Agenda automática con Google Calendar",
   "Entrega automática de archivos",
 ];
@@ -140,15 +140,15 @@ const PRO_PLAN = [
 const FAQ = [
   {
     q: "¿Cuánto cuesta usar Pagate?",
-    a: "Empieza gratis con hasta 2 productos y tus primeras 5 ventas. Pro cuesta $8.990/mes, sin comisión de Pagate por venta.",
+    a: "Empieza gratis con hasta 3 productos y tus primeras 5 ventas. Pro cuesta $8.990/mes, sin comisión de Pagate por venta.",
   },
   {
     q: "¿Cómo recibo el dinero de mis ventas?",
-    a: "La plata llega directo a tu cuenta vía Flow (Webpay o transferencia). Pagate no intermedia ni retiene pagos.",
+    a: "La plata llega directo a tu cuenta vía MercadoPago. Pagate no intermedia ni retiene pagos.",
   },
   {
     q: "¿Cuánto tarda en llegar cada venta a mi cuenta?",
-    a: "Depende de tu pasarela: Webpay suele acreditarse en el plazo de tu banco; transferencia según los tiempos de Flow.",
+    a: "Depende de MercadoPago y de tu banco: el plazo de acreditación es el de tu cuenta vinculada.",
   },
   {
     q: "¿Qué puedo vender en Pagate?",
@@ -187,7 +187,7 @@ const WITHOUT = [
 const WITH = [
   "El cliente entra a tu link de Pagate",
   "Elige el producto o la sesión y completa el checkout",
-  "Paga con Webpay o transferencia — la plata llega directo a tu cuenta",
+  "Paga con MercadoPago — la plata llega directo a tu cuenta",
   "Recibe su compra por correo automáticamente",
   "La sesión se agenda sola en tu Google Calendar",
 ];
@@ -280,11 +280,11 @@ function AccordionItem({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 py-4 text-left"
+        className="flex w-full items-center justify-between gap-3 py-4 text-left"
       >
         <span className="font-display text-xl text-[var(--ink)] sm:text-2xl">{title}</span>
         <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-white/70 text-lg text-[var(--ink-muted)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+          className={`flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full border border-[var(--line)] bg-white/70 text-xl leading-none text-[var(--ink-muted)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
             open ? "rotate-45" : "rotate-0"
           }`}
           aria-hidden
@@ -298,7 +298,7 @@ function AccordionItem({
       >
         <div className="min-h-0 overflow-hidden">
           <div
-            className={`pb-5 text-sm leading-relaxed text-[var(--ink-muted)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:text-base ${
+            className={`pb-5 pr-14 text-sm leading-relaxed text-[var(--ink-muted)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:pr-0 sm:text-base ${
               open
                 ? "translate-y-0 opacity-100 delay-75"
                 : "-translate-y-1.5 opacity-0"
@@ -346,7 +346,7 @@ export function LandingPage() {
     >
       <LandingHeader />
 
-      <main className="shell relative z-[1] pb-8 pt-10 sm:pt-16">
+      <main className="shell relative z-[1] overflow-x-clip pb-8 pt-10 sm:pt-16">
         <section className="max-w-3xl">
           <p className="animate-rise text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">
             Chile · creadores y profesionales
@@ -358,11 +358,11 @@ export function LandingPage() {
             Deja de hacer de secretario en cada venta. Un link para mostrar tus
             productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
           </p>
-          <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
-            <Link href="/crear" className="btn-primary">
+          <div className="animate-rise-delay-2 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/crear" className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
-            <Link href="/u/camila.nutri" className="btn-ghost">
+            <Link href="/u/camila.nutri" className="btn-ghost w-full justify-center sm:w-auto">
               Ver tienda demo
             </Link>
           </div>
@@ -372,26 +372,28 @@ export function LandingPage() {
         </section>
 
         {/* 2.1 Integraciones + vs */}
-        <section className="mt-16 border-y border-[var(--line)] py-8 text-center">
-          <p className="text-sm leading-relaxed text-[var(--ink-muted)] sm:text-base">
-            <span className="font-semibold text-[var(--ink)]">Funciona con</span> Flow
-            (Webpay + transferencia) <span className="text-[var(--teal)]">+</span> Google
-            Calendar <span className="text-[var(--teal)]">+</span> Google Meet · Hecho en
-            Chile · cobras en pesos chilenos
+        <section className="mt-12 border-y border-[var(--line)] py-7 text-center sm:mt-16 sm:py-8">
+          <p className="mx-auto max-w-xl text-sm leading-relaxed text-[var(--ink-muted)] sm:max-w-none sm:text-base">
+            <span className="font-semibold text-[var(--ink)]">Funciona con</span> MercadoPago{" "}
+            <span className="text-[var(--teal)]">+</span> Google Calendar{" "}
+            <span className="text-[var(--teal)]">+</span> Google Meet · Hecho en Chile · cobras
+            en pesos chilenos
           </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-sm font-medium text-[var(--ink-muted)]">
+          <div className="mt-6 flex flex-col items-stretch gap-3 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
+            <span className="text-sm font-medium text-[var(--ink-muted)] sm:shrink-0">
               ¿Vienes de otra herramienta?
             </span>
-            {comparisons.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/vs/${c.slug}`}
-                className="rounded-full border border-[var(--line)] bg-white/60 px-3 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal)] hover:bg-white/90 sm:text-sm"
-              >
-                vs {c.name}
-              </Link>
-            ))}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center">
+              {comparisons.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/vs/${c.slug}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] bg-white/60 px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal)] hover:bg-white/90 sm:min-h-0 sm:py-1.5 sm:text-sm"
+                >
+                  vs {c.name}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -573,7 +575,7 @@ export function LandingPage() {
         <section className="mt-20" id="precios">
           <SectionHeading
             title="Prueba gratis, pásate a Pro cuando crezcas"
-            subtitle="Empieza sin pagar nada: publica hasta 2 productos y haz tus primeras 5 ventas. Cuando superes ese límite, pasas a Pro y vendes sin tope."
+            subtitle="Empieza sin pagar nada: publica hasta 3 productos y haz tus primeras 5 ventas. Cuando superes ese límite, pasas a Pro y vendes sin tope."
           />
           <p className="mt-6 max-w-2xl rounded-[1rem] border border-[var(--teal)]/30 bg-[var(--mint)]/35 px-4 py-3 text-sm leading-relaxed text-[var(--teal-deep)] sm:text-base">
             Sin comisión por venta — Pagate no se queda con un porcentaje de tus ventas. Solo
@@ -588,7 +590,7 @@ export function LandingPage() {
               <p className="font-display mt-3 text-4xl text-[var(--ink)]">$0</p>
               <p className="mt-1 text-sm text-[var(--ink-muted)]">al arrancar</p>
               <p className="mt-3 text-sm font-medium text-[var(--ink)]">
-                Hasta 2 productos · primeras 5 ventas gratis
+                Hasta 3 productos · primeras 5 ventas gratis
               </p>
               <ul className="mt-6 space-y-2.5">
                 {FREE_PLAN.map((item) => (
@@ -657,11 +659,11 @@ export function LandingPage() {
           <h2 className="font-display text-3xl leading-tight text-[var(--ink)] sm:text-5xl">
             Deja de hacer de secretario en cada venta
           </h2>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/crear" className="btn-primary">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/crear" className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
-            <Link href="/dashboard" className="btn-ghost">
+            <Link href="/dashboard" className="btn-ghost w-full justify-center sm:w-auto">
               Ver panel demo
             </Link>
           </div>
