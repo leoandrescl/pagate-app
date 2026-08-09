@@ -54,7 +54,7 @@ const STEPS = [
   },
   {
     title: "Conecta tus herramientas",
-    body: "Integra tu cuenta de pago y Google Calendar en minutos.",
+    body: "Integra tu cuenta de Mercadopago y Google Calendar en minutos.",
   },
   {
     title: "Sube tus productos",
@@ -367,7 +367,7 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-[var(--ink-muted)]">
-            Demo · Mercado Pago de prueba · sin comisión de plataforma
+            Demo · Mercado Pago · sin comisión de plataforma
           </p>
         </section>
 
