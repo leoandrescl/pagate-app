@@ -1,12 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+
+function oauthReturnMessage(): string | null {
+  if (typeof window === "undefined") return null;
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const description =
+    hash.get("error_description") || query.get("error_description") || "";
+  if (query.get("error") === "oauth" || hash.get("error")) {
+    if (/unable to exchange external code/i.test(description)) {
+      return "Google aceptó la cuenta, pero Supabase no pudo canjear el código. Revisa que el Client Secret en Authentication → Providers → Google sea exactamente el de Cliente web 1 en Google Cloud.";
+    }
+    return "No se pudo completar el acceso con Google. Intenta de nuevo.";
+  }
+  return null;
+}
 
 export function GoogleLoginButton() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(oauthReturnMessage());
+  }, []);
 
   async function handleClick() {
     setError(null);
