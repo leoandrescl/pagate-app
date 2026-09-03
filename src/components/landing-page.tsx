@@ -360,7 +360,7 @@ export function LandingPage() {
             productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
           </p>
           <div className="animate-rise-delay-2 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
+            <Link href={studioHref("/login")} className="btn-primary w-full justify-center !shadow-none hover:!shadow-none sm:w-auto">
               Crear tu tienda
             </Link>
           </div>
@@ -658,7 +658,7 @@ export function LandingPage() {
             Deja de hacer de secretario en cada venta
           </h2>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
+            <Link href={studioHref("/login")} className="btn-primary w-full justify-center !shadow-none hover:!shadow-none sm:w-auto">
               Crear tu tienda
             </Link>
           </div>
