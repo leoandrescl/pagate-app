@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
+import { isOnboardingComplete } from "@/lib/onboarding";
 import { getMyStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function StudioAuthLayout({
     redirect("/login");
   }
   const store = await getMyStore(user.id);
-  if (store) {
+  if (isOnboardingComplete(store)) {
     redirect("/dashboard");
   }
   return children;

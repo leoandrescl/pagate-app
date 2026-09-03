@@ -5,6 +5,7 @@ import { getUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getMyStore } from "@/lib/store";
 import { getAppBaseUrl } from "@/lib/urls";
+import { isOnboardingComplete, pendingOnboardingPath } from "@/lib/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,10 @@ export default async function LoginPage() {
     const user = await getUser();
     if (user) {
       const store = await getMyStore(user.id);
-      redirect(store ? "/dashboard" : "/onboarding");
+      if (isOnboardingComplete(store)) {
+        redirect("/dashboard");
+      }
+      redirect(pendingOnboardingPath(store));
     }
   }
 

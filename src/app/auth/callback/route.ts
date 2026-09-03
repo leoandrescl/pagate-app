@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getMyStore } from "@/lib/store";
+import { isOnboardingComplete, pendingOnboardingPath } from "@/lib/onboarding";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getStudioUrl } from "@/lib/urls";
 
@@ -23,7 +24,9 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
       if (user) {
         const store = await getMyStore(user.id);
-        const dest = store ? "/dashboard" : "/onboarding";
+        const dest = isOnboardingComplete(store)
+          ? "/dashboard"
+          : pendingOnboardingPath(store);
         return NextResponse.redirect(new URL(next || dest, base));
       }
     }

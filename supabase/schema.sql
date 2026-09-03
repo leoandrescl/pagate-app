@@ -28,6 +28,13 @@ create table if not exists public.stores (
   }'::jsonb,
   google_calendar jsonb,
   onboarding_completed_at timestamptz,
+  onboarding_step text not null default 'handle',
+  intended_product_types text[] not null default '{}',
+  download_expiry_days integer default 7,
+  download_max_count integer not null default 2,
+  payment_settings jsonb not null default '{}'::jsonb,
+  social_links jsonb not null default '{}'::jsonb,
+  avatar_url text,
   created_at timestamptz not null default now()
 );
 
@@ -190,6 +197,15 @@ create policy "gcal tokens own"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- Idempotent upgrades for existing projects (must run before seed inserts)
+alter table public.stores add column if not exists onboarding_step text not null default 'handle';
+alter table public.stores add column if not exists intended_product_types text[] not null default '{}';
+alter table public.stores add column if not exists download_expiry_days integer default 7;
+alter table public.stores add column if not exists download_max_count integer not null default 2;
+alter table public.stores add column if not exists payment_settings jsonb not null default '{}'::jsonb;
+alter table public.stores add column if not exists social_links jsonb not null default '{}'::jsonb;
+alter table public.stores add column if not exists avatar_url text;
+
 -- Demo store (Camila). owner_id is null so nobody can mutate it from the panel.
 insert into public.stores (
   id,
@@ -199,7 +215,10 @@ insert into public.stores (
   bio,
   headline,
   avatar_initials,
-  onboarding_completed_at
+  onboarding_completed_at,
+  onboarding_step,
+  download_expiry_days,
+  download_max_count
 ) values (
   '11111111-1111-4111-8111-111111111111',
   null,
@@ -208,7 +227,10 @@ insert into public.stores (
   'Nutricionista clínica. Planes descargables, guías prácticas y sesiones 1:1 por videollamada.',
   'Nutrición simple para tu semana',
   'CR',
-  now()
+  now(),
+  'done',
+  7,
+  5
 )
 on conflict (id) do nothing;
 
@@ -249,3 +271,10 @@ insert into public.products (
     '/demo/workbook-habitos-pagate.pdf'
   )
 on conflict (id) do nothing;
+
+update public.stores
+set
+  onboarding_step = 'done',
+  download_expiry_days = 7,
+  download_max_count = 5
+where id = '11111111-1111-4111-8111-111111111111';

@@ -211,6 +211,14 @@ body::after {
   margin-inline: auto;
 }
 
+.title-mark {
+  text-decoration: underline;
+  text-decoration-color: var(--coral);
+  text-decoration-style: wavy;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.18em;
+}
+
 @media (max-width: 480px) {
   .shell {
     width: min(1120px, calc(100% - 2.5rem));

@@ -38,6 +38,37 @@ export type Creator = {
   googleCalendar?: GoogleCalendarConnection;
 };
 
+export type OnboardingStepId =
+  | "handle"
+  | "product-type"
+  | "pagos"
+  | "download-expiry"
+  | "profile"
+  | "socials"
+  | "done";
+
+export type PaymentSettings = {
+  mercadoPago: "later" | "skipped";
+  goCuotas: boolean;
+  transferEnabled: boolean;
+  transferHolder?: string;
+  transferRut?: string;
+  transferEmail?: string;
+  transferBank?: string;
+  transferAccount?: string;
+};
+
+export type StoreSocialLinks = {
+  instagram?: string;
+  tiktok?: string;
+  whatsapp?: string;
+};
+
+export type DownloadPolicy = {
+  expiryDays: number | null;
+  maxCount: number;
+};
+
 export type PurchaseStatus = "pending" | "paid" | "rejected";
 
 export type Purchase = {
@@ -64,6 +95,18 @@ export type DemoStore = {
   creator: Creator;
   products: Product[];
   purchases: Purchase[];
+};
+
+export type StoreBundle = DemoStore & {
+  ownerId: string | null;
+  onboardingCompletedAt: string | null;
+  onboardingStep: OnboardingStepId;
+  intendedProductTypes: ProductType[];
+  downloadExpiryDays: number | null;
+  downloadMaxCount: number;
+  paymentSettings: PaymentSettings;
+  socialLinks: StoreSocialLinks;
+  avatarUrl: string | null;
 };
 
 export type GoogleTokenStore = {

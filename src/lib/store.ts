@@ -4,13 +4,20 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import type {
   Availability,
   Creator,
-  DemoStore,
+  DownloadPolicy,
   GoogleCalendarConnection,
   GoogleTokenStore,
+  OnboardingStepId,
+  PaymentSettings,
   Product,
   ProductType,
   Purchase,
+  StoreBundle,
+  StoreSocialLinks,
 } from "./types";
+import { advanceOnboardingStep } from "./onboarding";
+
+export type { StoreBundle } from "./types";
 
 export const DEFAULT_AVAILABILITY: Availability = {
   timezone: "America/Santiago",
@@ -47,6 +54,13 @@ type StoreRow = {
   availability: Availability | null;
   google_calendar: GoogleCalendarConnection | null;
   onboarding_completed_at: string | null;
+  onboarding_step: OnboardingStepId | null;
+  intended_product_types: string[] | null;
+  download_expiry_days: number | null;
+  download_max_count: number | null;
+  payment_settings: PaymentSettings | null;
+  social_links: StoreSocialLinks | null;
+  avatar_url: string | null;
 };
 
 type ProductRow = {
@@ -224,7 +238,46 @@ async function fetchStoreRowById(id: string): Promise<StoreRow | null> {
   return (data as StoreRow | null) ?? null;
 }
 
-export type StoreBundle = DemoStore & { ownerId: string | null };
+const DEFAULT_PAYMENT: PaymentSettings = {
+  mercadoPago: "later",
+  goCuotas: false,
+  transferEnabled: false,
+};
+
+function paymentFromRow(row: StoreRow): PaymentSettings {
+  return { ...DEFAULT_PAYMENT, ...(row.payment_settings ?? {}) };
+}
+
+function socialFromRow(row: StoreRow): StoreSocialLinks {
+  return row.social_links ?? {};
+}
+
+function onboardingFields(row: StoreRow) {
+  const step = row.onboarding_step;
+  const valid: OnboardingStepId[] = [
+    "handle",
+    "product-type",
+    "pagos",
+    "download-expiry",
+    "profile",
+    "socials",
+    "done",
+  ];
+  return {
+    onboardingCompletedAt: row.onboarding_completed_at,
+    onboardingStep: valid.includes(step as OnboardingStepId)
+      ? (step as OnboardingStepId)
+      : "handle",
+    intendedProductTypes: ((row.intended_product_types ?? []).filter(
+      (t) => t === "digital" || t === "session",
+    ) ?? []) as ProductType[],
+    downloadExpiryDays: row.download_expiry_days,
+    downloadMaxCount: row.download_max_count ?? 2,
+    paymentSettings: paymentFromRow(row),
+    socialLinks: socialFromRow(row),
+    avatarUrl: row.avatar_url,
+  };
+}
 
 async function bundleFromRow(row: StoreRow): Promise<StoreBundle> {
   const [products, purchases] = await Promise.all([
@@ -236,6 +289,7 @@ async function bundleFromRow(row: StoreRow): Promise<StoreBundle> {
     products,
     purchases,
     ownerId: row.owner_id,
+    ...onboardingFields(row),
   };
 }
 
@@ -245,6 +299,14 @@ function demoBundle(): StoreBundle {
     products: demoProducts(),
     purchases: [],
     ownerId: null,
+    onboardingCompletedAt: new Date(0).toISOString(),
+    onboardingStep: "done",
+    intendedProductTypes: ["digital", "session"],
+    downloadExpiryDays: 7,
+    downloadMaxCount: 5,
+    paymentSettings: DEFAULT_PAYMENT,
+    socialLinks: {},
+    avatarUrl: null,
   };
 }
 
@@ -366,6 +428,35 @@ export async function createProduct(
   return product;
 }
 
+export function digitalDownloadFields(
+  store: StoreBundle,
+  type: ProductType,
+  paid: boolean,
+): { downloadsRemaining: number; expiresAt: string } {
+  const fallbackExpiry = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  if (type !== "digital" || !paid) {
+    return { downloadsRemaining: 0, expiresAt: fallbackExpiry };
+  }
+  const days = store.downloadExpiryDays;
+  const expiresAt =
+    days == null
+      ? "2099-12-31T23:59:59.000Z"
+      : new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  return {
+    downloadsRemaining: store.downloadMaxCount || 2,
+    expiresAt,
+  };
+}
+
+export function downloadPolicyForStore(store: StoreBundle): DownloadPolicy {
+  return {
+    expiryDays: store.downloadExpiryDays,
+    maxCount: store.downloadMaxCount,
+  };
+}
+
 export async function updateAvailability(
   storeId: string,
   patch: Partial<Availability>,
@@ -419,6 +510,7 @@ export async function createPurchase(input: {
     ? new Date(new Date(slotStart).getTime() + duration * 60 * 1000).toISOString()
     : undefined;
   const status = input.status ?? "paid";
+  const downloads = digitalDownloadFields(store, product.type, status === "paid");
 
   const purchase: Purchase = {
     id: `pur_${randomBytes(4).toString("hex")}`,
@@ -428,8 +520,8 @@ export async function createPurchase(input: {
     buyerEmail: input.buyerEmail.trim().toLowerCase(),
     amountClp: product.priceClp,
     status,
-    downloadsRemaining: product.type === "digital" && status === "paid" ? 5 : 0,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    downloadsRemaining: downloads.downloadsRemaining,
+    expiresAt: downloads.expiresAt,
     createdAt: new Date().toISOString(),
     slotStart,
     slotEnd,
@@ -497,7 +589,11 @@ export async function updatePurchasePayment(
     patch.status = data.status;
     if (data.status === "paid" && found.purchase.downloadsRemaining === 0) {
       if (found.product.type === "digital") {
-        patch.downloads_remaining = 5;
+        const store = await getStoreById(found.product.creatorId);
+        patch.downloads_remaining = store?.downloadMaxCount ?? 5;
+        if (store) {
+          patch.expires_at = digitalDownloadFields(store, "digital", true).expiresAt;
+        }
       }
     }
   }
@@ -532,12 +628,20 @@ export async function upsertPurchaseFromMetadata(input: {
     throw new Error("Supabase no está configurado.");
   }
   const product = await getProduct(input.productId);
-  const duration = product?.durationMinutes ?? 45;
+  if (!product) throw new Error("Producto no encontrado");
+  const store = await getStoreById(product.creatorId);
+  if (!store) throw new Error("Tienda no encontrada");
+  const duration = product.durationMinutes ?? 45;
   const slotEnd = input.slotStart
     ? new Date(
         new Date(input.slotStart).getTime() + duration * 60 * 1000,
       ).toISOString()
     : undefined;
+  const downloads = digitalDownloadFields(
+    store,
+    product.type,
+    input.status === "paid",
+  );
 
   const purchase: Purchase = {
     id: `pur_${randomBytes(4).toString("hex")}`,
@@ -547,16 +651,14 @@ export async function upsertPurchaseFromMetadata(input: {
     buyerEmail: input.buyerEmail,
     amountClp: input.amountClp,
     status: input.status,
-    downloadsRemaining:
-      product?.type === "digital" && input.status === "paid" ? 5 : 0,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    downloadsRemaining: downloads.downloadsRemaining,
+    expiresAt: downloads.expiresAt,
     createdAt: new Date().toISOString(),
     slotStart: input.slotStart,
     slotEnd,
     mpPaymentId: input.mpPaymentId,
   };
 
-  if (!product) throw new Error("Producto no encontrado");
   const { error } = await db()
     .from("purchases")
     .insert(purchaseToRow(purchase, product.creatorId));
@@ -659,6 +761,141 @@ export function initialsFromName(name: string): string {
   if (parts.length === 0) return "??";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+export async function isUsernameAvailable(
+  username: string,
+  ownerUserId?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const normalized = normalizeUsername(username);
+  if (!isValidUsername(normalized)) {
+    return {
+      ok: false,
+      error: "Usa 3–24 caracteres: letras, números y puntos.",
+    };
+  }
+  if (RESERVED_USERNAMES.has(normalized)) {
+    return { ok: false, error: "Ese usuario no está disponible." };
+  }
+  const taken = await getStoreByUsername(normalized);
+  if (taken && taken.ownerId && taken.ownerId !== ownerUserId) {
+    return { ok: false, error: "Ese usuario ya está en uso." };
+  }
+  if (taken && !taken.ownerId) {
+    return { ok: false, error: "Ese usuario ya está en uso." };
+  }
+  return { ok: true };
+}
+
+export async function claimOnboardingUsername(
+  userId: string,
+  rawUsername: string,
+  displayNameHint: string,
+): Promise<StoreBundle> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const username = normalizeUsername(rawUsername);
+  const availability = await isUsernameAvailable(username, userId);
+  if (!availability.ok) {
+    throw new Error(availability.error);
+  }
+
+  const existing = await getMyStore(userId);
+  const displayName =
+    existing?.creator.displayName?.trim() ||
+    displayNameHint.trim() ||
+    username;
+
+  if (existing) {
+    const nextStep = advanceOnboardingStep(existing.onboardingStep, "handle");
+    const { error } = await db()
+      .from("stores")
+      .update({
+        username,
+        display_name: displayName,
+        avatar_initials: initialsFromName(displayName),
+        onboarding_step: nextStep,
+      })
+      .eq("id", existing.creator.id);
+    if (error) {
+      if (error.code === "23505") throw new Error("Ese usuario ya está en uso.");
+      throw new Error(error.message);
+    }
+    const updated = await getStoreById(existing.creator.id);
+    if (!updated) throw new Error("No se pudo actualizar la tienda.");
+    return updated;
+  }
+
+  const storeId = randomUUID();
+  const { error } = await db().from("stores").insert({
+    id: storeId,
+    owner_id: userId,
+    username,
+    display_name: displayName,
+    bio: "",
+    headline: "",
+    avatar_initials: initialsFromName(displayName),
+    availability: DEFAULT_AVAILABILITY,
+    onboarding_completed_at: null,
+    onboarding_step: "product-type",
+    download_expiry_days: 7,
+    download_max_count: 2,
+  });
+  if (error) {
+    if (error.code === "23505") throw new Error("Ese usuario ya está en uso.");
+    throw new Error(error.message);
+  }
+  const created = await getStoreById(storeId);
+  if (!created) throw new Error("No se pudo leer la tienda recién creada.");
+  return created;
+}
+
+export async function patchOnboardingStore(
+  userId: string,
+  completedStep: OnboardingStepId,
+  patch: Record<string, unknown>,
+): Promise<StoreBundle> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const existing = await getMyStore(userId);
+  if (!existing) throw new Error("Primero elige tu usuario.");
+  const nextStep = advanceOnboardingStep(existing.onboardingStep, completedStep);
+  const { error } = await db()
+    .from("stores")
+    .update({
+      ...patch,
+      onboarding_step: nextStep,
+    })
+    .eq("id", existing.creator.id);
+  if (error) throw new Error(error.message);
+  const updated = await getStoreById(existing.creator.id);
+  if (!updated) throw new Error("No se pudo guardar el paso.");
+  return updated;
+}
+
+export async function completeOnboarding(
+  userId: string,
+  patch: Record<string, unknown>,
+): Promise<StoreBundle> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const existing = await getMyStore(userId);
+  if (!existing) throw new Error("Primero elige tu usuario.");
+  const { error } = await db()
+    .from("stores")
+    .update({
+      ...patch,
+      onboarding_step: "done",
+      onboarding_completed_at: new Date().toISOString(),
+    })
+    .eq("id", existing.creator.id);
+  if (error) throw new Error(error.message);
+  const updated = await getStoreById(existing.creator.id);
+  if (!updated) throw new Error("No se pudo terminar el onboarding.");
+  return updated;
 }
 
 export async function createStore(
