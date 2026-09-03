@@ -21,7 +21,7 @@ export function WizardNav({
   const { pending } = useFormStatus();
 
   return (
-    <div className="mt-auto pt-10">
+    <div className="mt-auto pt-6">
       {error ? (
         <p className="mb-4 rounded-xl bg-[var(--fog)] px-3 py-2 text-sm text-[var(--coral)]">
           {error}

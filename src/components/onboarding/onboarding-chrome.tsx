@@ -87,7 +87,7 @@ export function OnboardingChrome({
         </ol>
       </div>
 
-      <main className="shell relative z-[1] flex w-full max-w-3xl flex-1 flex-col pb-8 pt-10 sm:pt-12">
+      <main className="shell relative z-[1] flex w-full max-w-3xl flex-1 flex-col pb-8 pt-6 sm:pt-8">
         {children}
       </main>
     </div>
