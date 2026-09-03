@@ -18,7 +18,7 @@ export function WeekCalendar({ events, connected }: Props) {
   }));
 
   return (
-    <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+    <section className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5 backdrop-blur-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl">Calendario (7 días)</h2>
