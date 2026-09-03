@@ -1,12 +1,12 @@
-# Crear tu tienda — especificación de onboarding (studio.pagate.cl)
+# Crear tu tienda — especificación definitiva de onboarding (studio.pagate.cl)
 
-**Estado:** esperando corrección / aprobación. No implementar código de producto hasta que este documento se apruebe.
+**Estado:** versión definitiva. Documento autosuficiente: el agente que implemente debe basarse solo en este markdown.
 
 **Repo:** [leoandrescl/pagate-app](https://github.com/leoandrescl/pagate-app)  
 **Superficie:** `https://studio.pagate.cl`  
-**Fuera de este ticket:** login con Google / Auth, y el dashboard de la captura `cuenta-8`.
+**Fuera de este ticket:** login con Google / Auth, y cualquier rediseño del dashboard del creador.
 
-Este archivo es el brief de implementación para otro agente de Cursor. Hay que seguirlo al pie de la letra. Las capturas de Pulgy son referencia de **flujo, jerarquía y copy**, no de color ni de tipografía.
+Este archivo es el brief de implementación para otro agente de Cursor. Hay que seguirlo al pie de la letra. Describe flujo, layout, copy, datos y criterios de aceptación con suficiente detalle para construir sin material visual externo.
 
 ---
 
@@ -19,9 +19,9 @@ Implementa el onboarding "Crear tu tienda" de Pagate según docs/v2-crear-tu-tie
 
 Reglas duras:
 - No toques login de Google, Auth0, Supabase Auth provider, GoogleLoginButton, ni la pantalla /login.
-- No rediseñes ni implementes el dashboard de la captura cuenta-8 (referencias/08-dashboard-cuenta-8-NO-IMPLEMENTAR.jpg). Solo redirige ahí al terminar.
-- No copies magenta/rosa de Pulgy. Usa el design system existente de Pagate (globals.css).
-- Español de Chile (tuteo: Elige, Configura, Puedes). Nunca voseo argentino (Elegí, Configurá, Podés).
+- No rediseñes el dashboard del creador. Al terminar el wizard solo redirige a /dashboard (el panel actual se deja como está).
+- Usa el design system existente de Pagate (globals.css): teal/coral/ink. No uses magenta/rosa como color de marca.
+- Español de Chile (tuteo: Elige, Configura, Puedes). Nunca voseo (Elegí, Configurá, Podés).
 - Lee AGENTS.md y la guía de Next.js en node_modules/next/dist/docs/ antes de escribir código.
 - Reemplaza el onboarding de una sola página por el wizard de 5 pasos. No dejes el formulario actual de create-store-form como flujo principal.
 - Al terminar: PR contra master, con el schema SQL actualizado y el wizard funcionando en studio.pagate.cl.
@@ -37,7 +37,7 @@ Hoy el producto falla ese recorte:
 
 | Hoy | Debe quedar |
 | --- | --- |
-| `pagate.cl/crear` redirige a `/login` y luego a un **formulario único** en `/onboarding` | Wizard multi-paso en `studio.pagate.cl/onboarding/...`, mismo patrón que Pulgy |
+| `pagate.cl/crear` redirige a `/login` y luego a un **formulario único** en `/onboarding` | Wizard multi-paso en `studio.pagate.cl/onboarding/...` |
 | Se piden handle + nombre + headline + bio + primer producto en una sola pantalla | Un trabajo por pantalla. **No** se crea el primer producto en este flujo |
 | `onboarding_completed_at` se setea al crear la tienda | Se setea solo al pulsar **Finalizar** |
 | Si ya hay fila en `stores`, el layout manda a `/dashboard` | Si la tienda existe pero el onboarding no terminó, se reanuda el paso pendiente |
@@ -56,7 +56,7 @@ El CTA **Crear tu tienda** de la landing ya apunta a `studioHref("/login")`. No 
 - `src/app/login/page.tsx`
 - `src/components/google-login-button.tsx`
 - Proveedor Google en Supabase Auth
-- Intercambio de `code` en `src/app/auth/callback/route.ts` (salvo el destinto post-login descrito en §6)
+- Intercambio de `code` en `src/app/auth/callback/route.ts` (salvo el destino post-login descrito en §6)
 - Textos tipo “Inicia sesión en Google / Pagate”
 - Cualquier flujo Auth0
 
@@ -64,11 +64,11 @@ El dueño del repo ya entregó el login. Este ticket asume sesión válida.
 
 **Única excepción de routing:** si el usuario autenticado no terminó el onboarding, el callback y los layouts deben mandarlo al paso pendiente (ya hoy mandan a `/onboarding` si no hay tienda; hay que refinar esa regla, no el login).
 
-### 2.2 Dashboard `cuenta-8`
+### 2.2 Dashboard del creador
 
-La captura `referencias/08-dashboard-cuenta-8-NO-IMPLEMENTAR.jpg` es **solo el destino**. No construir sidebar Pulgy, banner “Creá tu primer producto”, cards de ingresos/ventas, ni “Tu pulgy”.
+No rediseñar `src/app/dashboard/page.tsx`. No construir sidebar nueva, banner de “primer producto”, cards de ingresos/ventas vacías, ni bloque de “tu link” estilo otro producto.
 
-El dashboard actual (`src/app/dashboard/page.tsx`) se deja como está. Este ticket termina con `redirect("/dashboard")`.
+Este ticket termina con `redirect("/dashboard")`. El panel actual se deja como está.
 
 ### 2.3 Otros no-hacer
 
@@ -76,7 +76,8 @@ El dashboard actual (`src/app/dashboard/page.tsx`) se deja como está. Este tick
 - No cambiar la vitrina pública de `https://pagate.cl/u/{handle}`.
 - No conectar Google Calendar dentro del wizard (el aviso “Requiere Google Calendar” es copy; el OAuth de calendario ya vive en el panel).
 - No implementar checkout de Go Cuotas ni la UI de “el comprador paga por transferencia” en la tienda. Sí **persistir** esos datos en la tienda.
-- No copiar voseo, magenta Pulgy, ni layout de tarjeta suelta tipo dashboard en el wizard.
+- No usar voseo ni magenta como marca.
+- No inventar un icono de ayuda (`?`) sin destino real.
 
 ---
 
@@ -88,17 +89,17 @@ Producción ya está partida:
 - Studio: `https://studio.pagate.cl` (`NEXT_PUBLIC_STUDIO_URL`)
 - Proxy: `src/proxy.ts`
 
-### 3.1 Rutas nuevas del wizard (studio)
+### 3.1 Rutas del wizard (studio)
 
-| Paso | Ruta | Captura |
-| --- | --- | --- |
-| 1 Handle | `/onboarding/handle` | `referencias/01-handle.jpg` |
-| 2 Productos | `/onboarding/product-type` | `referencias/02-product-type.jpg` |
-| 3 Pagos | `/onboarding/pagos` | `03` + `04` (una sola página con scroll) |
-| 4 Descargas | `/onboarding/download-expiry` | `referencias/05-download-expiry.jpg` |
-| 5a Identidad | `/onboarding/profile` | `referencias/06-perfil-identidad.jpg` |
-| 5b Redes | `/onboarding/profile/socials` | `referencias/07-perfil-redes.jpg` |
-| Fin | `/dashboard` | no implementar UI |
+| Paso | Ruta |
+| --- | --- |
+| 1 Handle | `/onboarding/handle` |
+| 2 Productos | `/onboarding/product-type` |
+| 3 Pagos | `/onboarding/pagos` |
+| 4 Descargas | `/onboarding/download-expiry` |
+| 5a Identidad | `/onboarding/profile` |
+| 5b Redes | `/onboarding/profile/socials` |
+| Fin | `/dashboard` |
 
 `/onboarding` (sin subruta) redirige al primer paso incompleto.  
 `/crear` se deja: ya redirige a `/login`.
@@ -115,11 +116,9 @@ Hoy el proxy manda `/` del host studio a `pagate.cl`. Hay que cambiar **solo esa
 
 El resto del proxy no se toca: `/u`, `/checkout`, `/d` siguen en marketing; `/login`, `/onboarding`, `/dashboard`, `/auth` siguen en studio.
 
-Añadir al matcher de studio las subrutas `/onboarding/*` (ya cubiertas por el prefijo `/onboarding`).
-
 ### 3.3 Link público que se muestra en Handle
 
-El prefix del input **no** es `store.pulgy.app/`. Es el URL real de Pagate:
+Prefix del input (no inventar otro dominio):
 
 ```text
 pagate.cl/u/
@@ -130,7 +129,7 @@ Helper ya existente: `storefrontHref(username)` en `src/lib/urls.ts`.
 
 ---
 
-## 4. Design system (Pagate, no Pulgy)
+## 4. Design system (Pagate)
 
 Leer `src/app/globals.css` y `src/app/layout.tsx` antes de pintar.
 
@@ -142,7 +141,7 @@ Leer `src/app/globals.css` y `src/app/layout.tsx` antes de pintar.
 | `--ink-muted` | `#3d5a54` | Subtítulos, ayudas |
 | `--teal` | `#1f8a72` | Paso activo, focus, links |
 | `--teal-deep` | `#0d5c4d` | Hover / botón primario |
-| `--coral` | `#e4572e` | Subrayado “squiggle” del título (el magenta de Pulgy se reemplaza por coral) |
+| `--coral` | `#e4572e` | Subrayado “squiggle” del título |
 | `--mint` | `#b8f2c8` | Selección suave |
 | `--fog` | `#f3faf7` | Fondos de ayuda |
 | `--line` | `rgba(7, 26, 23, 0.12)` | Bordes |
@@ -152,42 +151,46 @@ Leer `src/app/globals.css` y `src/app/layout.tsx` antes de pintar.
 | `.field` | input existente | Todos los inputs |
 | `.animate-rise*` | ya existen | Entrada de cada paso |
 
-Fondo: no aplanar a blanco Pulgy. Dejar la atmósfera `body::before` / `.atmosphere` de Pagate.
+Fondo: mantener la atmósfera `body::before` / `.atmosphere` de Pagate. No aplanar a un blanco plano.
 
-### 4.2 Qué copiar de Pulgy (estructura)
+### 4.2 Layout del wizard (estructura)
 
-- Una pregunta por viewport, título grande, una frase de apoyo.
-- Stepper horizontal sobre el contenido.
-- Footer fijo: Atrás izquierda, primario derecha.
-- Cards de tipo de producto seleccionables, lado a lado en desktop, stack en mobile.
-- Cards de pago con borde **dashed** (usar `border-dashed` + `--line` / teal, no magenta).
+- Una pregunta por viewport: título grande, una frase de apoyo, el control principal.
+- Stepper horizontal de 5 pasos sobre el contenido.
+- Footer sticky: Atrás a la izquierda, acción primaria a la derecha.
+- Cards de tipo de producto seleccionables: lado a lado en desktop, apiladas en mobile.
+- Cards de pago con borde **dashed** (`border-dashed` + `--line` / teal).
 - Input de handle con prefix no editable + check de disponibilidad.
 - Chips de duración en una fila que hace wrap.
 
-### 4.3 Qué no copiar de Pulgy
+### 4.3 Copy: español de Chile
 
-- Magenta / rosa `#D12E67` / `#D67098` como color de marca.
-- Botón primario rectangular sólido rosa. En Pagate el primario ya es pill teal (`.btn-primary`).
-- Logo “Pülgy”. El wordmark es **Pagate**, `font-display`, como en landing y login.
-- Icono de ayuda muerto (`?`) si no hay destino. No inventar un centro de ayuda. Header Pagate: logo | email + Cerrar sesión.
-- No agregar una `X` de cierre que salte el onboarding hacia el dashboard.
+Usar tuteo siempre.
 
-### 4.4 Copy: español de Chile
-
-Tuteo. Tabla de reemplazo:
-
-| Pulgy (no usar) | Pagate (usar) |
+| No usar | Usar |
 | --- | --- |
 | Elegí / Configurá / Creá / Podés / Contale / Recibí / Cobrá | Elige / Configura / Crea / Puedes / Cuéntale / Recibe / Cobra |
 | vos | tú |
-| Pulgy / tu pulgy | Pagate / tu tienda |
-| store.pulgy.app | pagate.cl/u/ |
 | CVU / CBU / Alias | CuentaRUT / número de cuenta / alias |
 | Ajustes -> Tienda | Ajustes → Tienda |
 
-Subrayado del título: una palabra clave con squiggle SVG en `--coral` (Handle: “handle”; Productos: “vender”; Pagos: “medios de pago”; Descargas: “links de descarga”; Perfil: “tienda”). Reutilizar un componente `ScribbleWord`. Animar el trazo al montar el paso (~600ms, una vez).
+Subrayado del título: una palabra clave con squiggle SVG en `--coral`:
 
-Motion mínimo (2–3, no más): (1) rise del bloque central, (2) trazo del squiggle, (3) stepper (línea y check). Hover de cards: borde teal + mint suave, sin sombras de tres capas.
+| Paso | Palabra subrayada |
+| --- | --- |
+| Handle | handle |
+| Productos | vender |
+| Pagos | medios de pago |
+| Descargas | links de descarga |
+| Perfil | tienda |
+
+Componente reutilizable sugerido: `ScribbleWord`. Animar el trazo al montar el paso (~600ms, una vez).
+
+Motion mínimo (2–3): (1) rise del bloque central, (2) trazo del squiggle, (3) transición del stepper. Hover de cards: borde teal + mint suave, sin sombras multicapa.
+
+Wordmark: **Pagate**, `font-display`, igual que landing y login.
+
+Header del wizard: logo a la izquierda | email del usuario + `SignOutButton` a la derecha. Sin botón `X` que salte el onboarding. Sin icono de ayuda vacío.
 
 ---
 
@@ -216,7 +219,7 @@ alter table public.stores
 --   handle | product-type | pagos | download-expiry | profile | profile-socials | done
 ```
 
-`onboarding_completed_at` sigue siendo la fuente de verdad de “¿ya puede entrar al panel?”. `onboarding_step = 'done'` y `onboarding_completed_at = now()` se escriben juntos en **Finalizar**.
+`onboarding_completed_at` es la fuente de verdad de “¿ya puede entrar al panel?”. `onboarding_step = 'done'` y `onboarding_completed_at = now()` se escriben juntos en **Finalizar**.
 
 Valores:
 
@@ -228,7 +231,7 @@ social_links: {
   twitter?: string;
   linkedin?: string;   // URL
   website?: string;    // URL
-  whatsapp?: string;   // extra Pagate/Chile, no está en Pulgy
+  whatsapp?: string;   // extra Pagate/Chile
 }
 
 mp_connection: {
@@ -256,23 +259,23 @@ bank_transfer: {
 `download_expiry_days`: `1` (24 h), `7`, `30`, `90`, o `null` (no expiran). Default al crear la fila: `7`.  
 `download_max_count`: default `2` (hoy el código usa `5`; hay que cambiarlo).
 
-`headline` puede quedar `''` hasta que el creador lo edite en el panel. No pedir headline en el wizard (Pulgy no lo pide). En la vitrina, si `headline` está vacío, no renderizar esa línea.
+`headline` puede quedar `''` hasta que el creador lo edite en el panel. No pedir headline en el wizard. En la vitrina, si `headline` está vacío, no renderizar esa línea.
 
-`bio` en onboarding: máx. 150 caracteres (el panel actual no tiene tope; no hace falta cambiar el panel).
+`bio` en onboarding: máx. 150 caracteres.
 
 ### 5.2 Storage de foto
 
-Bucket privado o público de lectura `store-avatars` (Supabase Storage). Path: `{store_id}/avatar`. RLS: el dueño sube/reemplaza; lectura pública si la vitrina muestra la foto.
+Bucket `store-avatars` (Supabase Storage). Path: `{store_id}/avatar`. RLS: el dueño sube/reemplaza; lectura pública si la vitrina muestra la foto.
 
-Si no hay foto: iniciales actuales (`avatar_initials`). Si el perfil de Google trae `avatar_url` y el usuario no sube nada, se puede precargar como preview, no se copia a Storage hasta que confirme.
+Si no hay foto: iniciales (`avatar_initials`). Si el perfil de Google trae `avatar_url` y el usuario no sube nada, se puede mostrar como preview; no se copia a Storage hasta que confirme.
 
-### 5.3 API keys
+### 5.3 Secretos
 
-La API key de Go Cuotas **no** va a `localStorage` ni a logs. Si no hay estrategia de cifrado lista, guardar solo en columna de servidor vía service role y nunca seleccionarla en queries que viajen al browser. El cliente solo ve `connected: true/false` y el email.
+La API key de Go Cuotas **no** va a `localStorage` ni a logs. Guardar solo vía service role; el cliente solo ve `connected` y el email.
 
 Idem para tokens de Mercado Pago.
 
-### 5.4 Handle: reglas que ya existen (no inventar otras)
+### 5.4 Handle: reglas existentes (no inventar otras)
 
 `src/lib/store.ts`:
 
@@ -290,7 +293,7 @@ Mantener esas reglas. Añadir a reservados si hace falta: `handle`, `pagos`, `pr
 
 Hoy:
 
-- `src/app/onboarding/layout.tsx`: sin user → `/login`; **si hay store → `/dashboard`** (esto rompe el wizard a mitad de camino).
+- `src/app/onboarding/layout.tsx`: sin user → `/login`; **si hay store → `/dashboard`** (rompe el wizard a mitad de camino).
 - `src/app/dashboard/layout.tsx`: sin store → `/onboarding`.
 
 Queda:
@@ -316,8 +319,6 @@ El usuario puede **volver** a un paso anterior. No puede abrir un paso futuro sa
 
 Al guardar un paso, `onboarding_step` avanza al siguiente.
 
-Omitir:
-
 | Link | Efecto |
 | --- | --- |
 | Productos → “Configurar después” | `sells_digital` y `sells_sessions` quedan `null`; avanza a Pagos |
@@ -326,7 +327,7 @@ Omitir:
 
 Descargas no se omite: si el usuario no elige, se persiste el default (7 días / 2 descargas) al pulsar Siguiente.
 
-Si eligió **solo** reuniones online (`sells_sessions === true` y `sells_digital === false`), se puede saltar la UI de Descargas y persistir el default igual (el stepper marca Descargas como hecho). Más simple para el implementador: mostrar Descargas siempre (como Pulgy). **Hacer esto:** mostrar siempre los 5 pasos.
+Mostrar siempre los 5 pasos del stepper (aunque el usuario haya elegido solo reuniones online).
 
 ---
 
@@ -344,13 +345,19 @@ Archivo sugerido: `src/components/onboarding/onboarding-shell.tsx`.
 [ < Atrás ]                                              [ Siguiente > ]
 ```
 
-- Logo centrado en el eje del contenido (como Pulgy) o a la izquierda como el resto de Pagate: **izquierda**, para no pelear con landing/login. Email + `SignOutButton` a la derecha.
-- Stepper: cinco ítems. Completado = círculo teal con check blanco. Actual = círculo teal con número. Futuro = círculo gris con número. Línea conectora teal hasta el actual.
-- En `< sm`: mostrar solo “Paso 3 de 5 · Pagos” + barra lineal, para no aplastar labels.
-- Footer sticky bottom, fondo fog/80 + blur, botones existentes.
+Detalle:
+
+- Logo a la izquierda (`font-display`), email + `SignOutButton` a la derecha.
+- Stepper de cinco ítems con labels: Handle, Productos, Pagos, Descargas, Perfil.
+  - Completado: círculo teal con check blanco.
+  - Actual: círculo teal con número.
+  - Futuro: círculo gris con número.
+  - Línea conectora teal hasta el paso actual.
+- En `< sm`: “Paso 3 de 5 · Pagos” + barra lineal (sin aplastar cinco labels).
+- Footer sticky bottom, fondo fog/80 + blur, botones `.btn-ghost` / `.btn-primary`.
 - Paso 1: no hay Atrás.
 - Paso 5b: primario dice **Finalizar** (sin chevron).
-- Estados pending: deshabilitar primario, texto “Guardando…”.
+- Pending: deshabilitar primario, texto “Guardando…”.
 - `aria-current="step"` en el paso activo.
 
 Reusar `SignOutButton`. No crear otro logout.
@@ -359,8 +366,7 @@ Reusar `SignOutButton`. No crear otro logout.
 
 ## 8. Paso 1 — Handle
 
-Ruta: `/onboarding/handle`  
-Captura: `referencias/01-handle.jpg`
+Ruta: `/onboarding/handle`
 
 ### Copy
 
@@ -370,26 +376,27 @@ Captura: `referencias/01-handle.jpg`
 
 ### UI
 
-Input compuesto:
+Bloque centrado verticalmente en el viewport (debajo del stepper). Un solo control principal: input compuesto a ancho completo del contenedor (~640px).
 
 ```
 [ pagate.cl/u/ ][  malastore           ✓ ]
                               Disponible
 ```
 
-- Prefix no editable, fondo `--fog`.
-- Debounce 400ms.
-- Endpoint sugerido: `GET /api/onboarding/handle?u=` (sesión requerida) → `{ available: boolean, reason?: string }`.
-- Check teal + “Disponible” en `--teal-deep` cuando pasa validación **y** no está tomado.
-- Error: “No disponible”, “Usa 3–24 caracteres: letras, números y puntos”, “Ese nombre está reservado”.
-- Siguiente deshabilitado hasta `available === true`.
+- Prefix no editable (`pagate.cl/u/`), fondo `--fog`, borde compartido con el input.
+- Campo editable a la derecha; al escribir se normaliza a minúsculas y se filtran caracteres inválidos en vivo o al blur.
+- Debounce 400ms antes de consultar disponibilidad.
+- Endpoint: `GET /api/onboarding/handle?u=` (sesión requerida) → `{ available: boolean, reason?: string }`.
+- Si válido y libre: check teal dentro del input + texto “Disponible” en `--teal-deep` bajo el campo (alineado a la derecha o bajo el input).
+- Si inválido o tomado: sin check; mensaje “No disponible”, “Usa 3–24 caracteres: letras, números y puntos”, o “Ese nombre está reservado” en `--coral`.
+- **Siguiente** deshabilitado hasta `available === true`.
 
 ### Persistencia
 
-Al Siguiente: `createStore` progresivo (hoy exige headline/bio/displayName y marca onboarding completo: hay que partir esa función).
+Al Siguiente: create/update progresivo (hoy `createStore` exige headline/bio/displayName y marca onboarding completo: hay que partir esa función).
 
 - Inserta `stores` con `username`, `owner_id`, `display_name` temporal (nombre de Google vía `displayNameFromUser`, o el handle), `bio: ''`, `headline: ''`, `onboarding_step: 'product-type'`, `onboarding_completed_at: null`.
-- Unique en `lower(username)` ya existe. Si pisa 23505, mostrar “Ese usuario ya está en uso.”
+- Unique en `lower(username)` ya existe. Si pisa 23505 → “Ese usuario ya está en uso.”
 - Si la tienda ya existe (reanudación) y el handle cambió, update con la misma validación.
 
 No crear producto.
@@ -398,58 +405,65 @@ No crear producto.
 
 ## 9. Paso 2 — Productos
 
-Ruta: `/onboarding/product-type`  
-Captura: `referencias/02-product-type.jpg`
+Ruta: `/onboarding/product-type`
 
 ### Copy
 
 - Título: ¿Qué vas a **vender**?
 - Apoyo: `Puedes vender uno o varios tipos. Esto nos ayuda a configurar tu tienda.`
 
-### Cards (multi-select)
+### UI
 
-**Productos digitales**  
-Icono: documento con flecha de descarga (SVG, stroke teal).  
-`Presets, ebooks, archivos descargables, recetarios, PDFs, etc.`
+Dos cards seleccionables (multi-select), en grid 2 columnas desde `sm`, stack en mobile. Cada card: borde sutil, radio ~1–1.25rem, padding generoso, icono arriba, título, descripción corta.
 
-**Reuniones online**  
-Icono: cámara.  
-`Llamadas 1:1, consultorías, sesiones de coaching, etc.`  
-Nota en muted italic: `Requiere Google Calendar`
+**Card A — Productos digitales**
 
-Seleccionado: borde `--teal`, fondo mint/40. Puede haber 0, 1 o 2 seleccionados.
+- Icono SVG: documento con flecha de descarga (stroke teal).
+- Título: `Productos digitales`
+- Descripción: `Presets, ebooks, archivos descargables, recetarios, PDFs, etc.`
 
-Link centrado teal subrayado: **Configurar después**
+**Card B — Reuniones online**
 
-Siguiente: permitido con 0, 1 o 2 (0 equivale a omitir). Al guardar: `sells_digital`, `sells_sessions` boolean; `onboarding_step: 'pagos'`.
+- Icono SVG: cámara de video (stroke teal).
+- Título: `Reuniones online`
+- Descripción: `Llamadas 1:1, consultorías, sesiones de coaching, etc.`
+- Nota bajo la descripción, muted italic: `Requiere Google Calendar`
 
-**No** pedir nombre/precio/archivo. El primer producto se crea después, en el panel (fuera de este ticket).
+Estado seleccionado: borde `--teal`, fondo mint/40. Puede haber 0, 1 o 2 seleccionados.
+
+Bajo las cards, link centrado teal subrayado: **Configurar después**
+
+Footer: **Atrás** | **Siguiente**  
+Siguiente permitido con 0, 1 o 2 (0 ≡ omitir). Al guardar: `sells_digital`, `sells_sessions`; `onboarding_step: 'pagos'`.
+
+**No** pedir nombre, precio ni archivo. El primer producto se crea después en el panel (fuera de este ticket).
 
 ---
 
 ## 10. Paso 3 — Pagos
 
 Ruta: `/onboarding/pagos`  
-Capturas: `03-pagos-mercadopago.jpg` y `04-pagos-gocuotas-transferencia.jpg`  
-Una sola página, tres cards en vertical, scroll nativo.
+Una sola página con tres cards en vertical y scroll nativo.
 
 ### Copy
 
 - Título: Configura tus **medios de pago**
 - Apoyo: `Configura al menos un método para cobrar por tus productos. Los productos gratuitos funcionan sin esta configuración.`
 
-Siguiente **no** exige un método conectado (Pulgy deja seguir; además hay “Omitir este paso”). El apoyo es orientación, no validador.
+Siguiente **no** exige un método conectado. El apoyo es orientación, no validador.
 
-Link: **Omitir este paso**
+Bajo las cards, link centrado subrayado: **Omitir este paso**
 
 ### 10.1 Card Mercado Pago
 
-- Icono wallet + título “Mercado Pago”.
-- Botón `.btn-ghost` ancho: **Conectar Mercado Pago**.
-- Debajo, dos líneas con icono:
+Contenedor blanco/translúcido, borde dashed, radio amplio.
+
+- Header: icono wallet (coral o teal) + título `Mercado Pago`.
+- Botón `.btn-ghost` a ancho útil: **Conectar Mercado Pago**.
+- Debajo, dos líneas con icono pequeño:
   - `Solo permiso para crear links de pago`
   - `No tenemos acceso a tu dinero ni a tu cuenta`
-- Conectado: reemplazar el botón por “Mercado Pago conectado” + acción “Desconectar”.
+- Conectado: reemplazar el botón por estado “Mercado Pago conectado” + acción “Desconectar”.
 
 OAuth de **vendedor** (no el login de Google). Patrón análogo a `src/app/api/google/connect/route.ts`:
 
@@ -466,53 +480,65 @@ MP_REDIRECT_URI=https://studio.pagate.cl/api/mercadopago/callback
 
 Si faltan env: el botón no finge éxito. Texto: `La conexión de Mercado Pago no está habilitada todavía.` Siguiente sigue habilitado.
 
-Checkout actual (`src/lib/mercadopago.ts`) usa `MP_ACCESS_TOKEN` de la plataforma. **Mínimo funcional:** si la tienda tiene `mp_connection.accessToken`, `createCheckoutPreference` cobra con ese token (plata al vendedor). Si no, se mantiene el token de plataforma. No rediseñar checkout.
+Checkout actual (`src/lib/mercadopago.ts`) usa `MP_ACCESS_TOKEN` de la plataforma. **Mínimo funcional:** si la tienda tiene `mp_connection.accessToken`, `createCheckoutPreference` cobra con ese token. Si no, se mantiene el token de plataforma. No rediseñar checkout.
 
 ### 10.2 Card Go Cuotas
 
-Pulgy lo trae; hay que pintarlo y persistirlo. No construir el checkout en cuotas.
+Misma estética dashed. Persistencia sí; checkout en cuotas no.
 
-- Título + badges `2x` `3x` `4x` en coral.
+- Header: icono wallet + `Go Cuotas` + badges `2x` `3x` `4x` en coral a la derecha.
 - Copy: `Cobra en 2, 3 o 4 cuotas con tarjeta de débito. Liquidación en ~22 días hábiles. Comisión 9,6% + IVA.`
-- Campos: Email de la sucursal (`sucursal@tucomercio.com`), API Key (`API key de tu sucursal`).
-- Botón: **Conectar Go Cuotas**.
-- Éxito solo si hay validación real contra su API. Si no hay credenciales de plataforma / la API falla: error visible, `connected` sigue false.
-- Nunca mostrar la API key otra vez; placeholder `••••••••`.
+- Campo **Email de la sucursal** — placeholder `sucursal@tucomercio.com`
+- Campo **API Key** — placeholder `API key de tu sucursal`
+- Botón `.btn-ghost` ancho: **Conectar Go Cuotas**
+- Éxito solo con validación real contra su API. Si falla o no hay integración: error visible, `connected` sigue false.
+- Tras conectar, no volver a mostrar la API key; placeholder `••••••••`.
 
 ### 10.3 Card Transferencia bancaria (Chile)
 
-Sustituir CVU/CBU. Un solo campo, como Pulgy:
-
-- Título: **Transferencia bancaria**
+- Header: icono de billete/transferencia + `Transferencia bancaria`
 - Copy: `Recibe pagos sin comisiones. Cuando un comprador transfiere, tú verificas el pago y liberas el contenido desde Ventas en Pagate.`
 - Label: `CuentaRUT / número de cuenta / alias`
 - Placeholder: `12.345.678-9`
-- Ayuda: `Este dato se muestra al comprador para que te transfiera. Sin comisiones: recibes el 100% del pago.`
+- Ayuda bajo el campo: `Este dato se muestra al comprador para que te transfiera. Sin comisiones: recibes el 100% del pago.`
 
 Validación liviana: 5–40 caracteres tras recortar. Si parece RUT chileno (`12.345.678-9` o `12345678-9`), validar dígito verificador y avisar si está mal; no bloquear alias/números que no sean RUT.
 
-No hace falta campo banco. No implementar la pantalla de liberación en Ventas (dashboard fuera de alcance). Sí guardar `bank_transfer.account`.
+No pedir banco aparte. No implementar la pantalla de liberación en Ventas. Sí guardar `bank_transfer.account` al Siguiente si el campo tiene valor (o al blur/guardar del paso).
+
+Al Siguiente u Omitir: `onboarding_step: 'download-expiry'`.
 
 ---
 
 ## 11. Paso 4 — Descargas
 
-Ruta: `/onboarding/download-expiry`  
-Captura: `referencias/05-download-expiry.jpg`
+Ruta: `/onboarding/download-expiry`
 
 ### Copy
 
 - Título: ¿Cuánto duran tus **links de descarga**?
 - Apoyo: `Es el tiempo que tienen tus compradores para descargar los archivos después de comprar.`
-- Caja dashed:
-  - Título: `Por defecto son 7 días`
-  - Cuerpo: `Si no cambias esta configuración, los links expiran a los 7 días con un máximo de 2 descargas por archivo. Lo puedes ajustar después en Ajustes → Tienda.`
 
-### Chips (uno seleccionado)
+### UI
 
-`24 horas` · `7 días` (default, borde teal) · `30 días` · `90 días` · `No expiran`
+Fila de chips (botones tipo pill/rectángulo redondeado), wrap en mobile:
 
-Mapa: 24 h → `download_expiry_days = 1`; No expiran → `null`.
+| Chip | Valor guardado |
+| --- | --- |
+| `24 horas` | `download_expiry_days = 1` |
+| `7 días` | `7` (default seleccionado: borde teal) |
+| `30 días` | `30` |
+| `90 días` | `90` |
+| `No expiran` | `null` |
+
+Solo uno seleccionado a la vez.
+
+Debajo, caja dashed con fondo fog:
+
+- Título: `Por defecto son 7 días`
+- Cuerpo: `Si no cambias esta configuración, los links expiran a los 7 días con un máximo de 2 descargas por archivo. Lo puedes ajustar después en Ajustes → Tienda.`
+
+Footer: **Atrás** | **Siguiente** → guarda elección + `download_max_count = 2` + `onboarding_step: 'profile'`.
 
 ### Cableado real (obligatorio)
 
@@ -523,10 +549,10 @@ Hoy está hardcodeado en `src/lib/store.ts` (`createPurchase` / `upsertPurchaseF
 
 Debe leer la tienda del producto:
 
-- `expiresAt`: si `download_expiry_days` es `null`, usar una fecha lejana (p. ej. `now + 100 años`) o `expires_at` sentinela; `consumeDownload` ya compara `expiresAt < now`.
+- `expiresAt`: si `download_expiry_days` es `null`, fecha lejana (p. ej. `now + 100 años`); `consumeDownload` ya compara `expiresAt < now`.
 - `downloadsRemaining` en paid + digital: `store.download_max_count` (2), no 5.
 
-Sin este cableado el paso es cosmética. El texto “Ajustes → Tienda” es promesa de producto; **no** construir esa pantalla ahora.
+Sin este cableado el paso es cosmética. El texto “Ajustes → Tienda” es promesa futura; **no** construir esa pantalla ahora.
 
 ---
 
@@ -534,49 +560,57 @@ Sin este cableado el paso es cosmética. El texto “Ajustes → Tienda” es pr
 
 ### 12.1 Identidad — `/onboarding/profile`
 
-Captura: `referencias/06-perfil-identidad.jpg`
-
-Copy:
+### Copy
 
 - Título: Dale identidad a tu **tienda**
 - Apoyo: `Cuéntale a tu audiencia quién eres y tus redes sociales. Puedes cambiarlo más adelante en la sección de configuración.`
 
-UI:
+### UI (columna centrada)
 
-- Dropzone circular dashed, `?` muted adentro, label **Foto de perfil**. Click → `input type=file` (`image/jpeg,image/png,image/webp`, máx. 3 MB). Preview inmediato. Reemplazable.
-- **Nombre completo** — placeholder `Ej: Juana Pérez`. Default: `displayNameFromUser(user)`. Requerido, mín. 2 caracteres. Persiste en `display_name` + `avatar_initials`.
-- **Bio** — textarea, placeholder `Ej: Fotógrafa de bodas. Vendo presets de Lightroom y sesiones personalizadas.` Contador `n/150` esquina inferior derecha. Opcional. Bloquear en 150.
+1. **Foto de perfil**  
+   Círculo grande (~112–128px) con borde dashed. Interior: `?` muted o preview. Label debajo: `Foto de perfil`. Click abre `input type=file` (`image/jpeg,image/png,image/webp`, máx. 3 MB). Preview inmediato; reemplazable.
 
-Primario: **Siguiente** (no Finalizar). Pulgy muestra Finalizar en esta captura porque el scroll corta las redes; en Pagate las redes son el subpaso 5b para no saltarlas sin querer.
+2. **Nombre completo**  
+   Input `.field`. Placeholder `Ej: Juana Pérez`. Default: `displayNameFromUser(user)`. Requerido, mín. 2 caracteres. Persiste en `display_name` + recalcula `avatar_initials`.
+
+3. **Bio**  
+   Textarea `.field`. Placeholder `Ej: Fotógrafa de bodas. Vendo presets de Lightroom y sesiones personalizadas.` Contador `n/150` esquina inferior derecha del campo. Opcional. Hard-stop en 150.
+
+Footer: **Atrás** | **Siguiente** (no Finalizar). Avanza a `/onboarding/profile/socials` guardando identidad (`onboarding_step: 'profile-socials'`).
 
 ### 12.2 Redes — `/onboarding/profile/socials`
 
-Captura: `referencias/07-perfil-redes.jpg`
+### Copy / sección
 
-Título de sección: **Redes sociales (opcional)**
+Título de bloque: **Redes sociales (opcional)**  
+(El stepper sigue en Perfil = paso 5.)
 
-Grid 2×2:
+### UI
 
-| Campo | Prefix | Placeholder |
+Grid 2×2 en desktop, 1 columna en mobile:
+
+| Campo | Prefix dentro del input | Placeholder |
 | --- | --- | --- |
 | Instagram | `@` | usuario |
 | TikTok | `@` | usuario |
 | YouTube | `@` | canal |
 | Twitter / X | `@` | usuario |
 
-Full width:
+Campos full width debajo:
 
-- LinkedIn URL — `https://linkedin.com/in/...`
-- Sitio web — `https://tusitio.com`
-- **WhatsApp** (Pagate/Chile; la vitrina ya tiene este icono) — placeholder `wa.me/569...` o número. Guardar URL `https://wa.me/56...`
+- LinkedIn URL — placeholder `https://linkedin.com/in/...`
+- Sitio web — placeholder `https://tusitio.com`
+- **WhatsApp** (Pagate/Chile; la vitrina ya tiene este icono) — placeholder `wa.me/569...` o número. Guardar como URL `https://wa.me/56...`
 
 Normalizar handles: strip `@` y espacios. URLs: si vienen sin esquema, prefix `https://`.
 
-Link **Saltar por ahora**: finaliza con redes vacías (no borra identidad).
+Link centrado subrayado teal: **Saltar por ahora** → finaliza con redes vacías (no borra identidad).
 
-**Finalizar**:
+Footer: **Atrás** | **Finalizar**
 
-1. Guarda foto / nombre / bio / redes.
+**Finalizar** (o Saltar por ahora):
+
+1. Guarda foto / nombre / bio / redes (vacías si saltó).
 2. `onboarding_step = 'done'`, `onboarding_completed_at = now()`.
 3. `revalidatePath` de dashboard y `/u/{username}`.
 4. `redirect("/dashboard")`.
@@ -586,7 +620,7 @@ Link **Saltar por ahora**: finaliza con redes vacías (no borra identidad).
 Hoy bio/redes de la vitrina salen de `localStorage` (`store-settings-context.tsx`, comentario `// MOCK`). Para que identidad/redes no se evaporen:
 
 - `display_name`, `bio`, `avatar_url`, `social_links` se leen de `stores` en `getStoreByUsername`.
-- `StoreHeader` usa esos campos de servidor. No hace falta borrar el mock de banner/color de marca (siguen siendo mock del panel).
+- `StoreHeader` usa esos campos de servidor. No hace falta borrar el mock de banner/color de marca.
 
 No rediseñar la vitrina.
 
@@ -598,7 +632,7 @@ Al completar: `https://studio.pagate.cl/dashboard`.
 
 En local: `/dashboard`.
 
-No esperar a que el dashboard se vea como `cuenta-8`. Si el dashboard actual pinta, el ticket está bien.
+Si el dashboard actual pinta, el ticket está bien. No hay un rediseño del panel en este alcance.
 
 ---
 
@@ -648,20 +682,18 @@ El agente implementador debe leer la guía de Next.js del repo (`node_modules/ne
 
 ## 15. Criterios de aceptación
 
-Un revisor debe poder marcar esto:
-
 1. Usuario **ya logueado**, sin tienda, en `studio.pagate.cl` cae en `/onboarding/handle` (no en el form único actual, no en login).
-2. Wizard de 5 pasos, copy en tuteo, colores Pagate (teal/coral), no magenta Pulgy.
-3. Handle: prefix `pagate.cl/u/`, debounce, Disponible / No disponible, no se puede seguir si está tomado o es inválido.
+2. Wizard de 5 pasos, copy en tuteo, colores Pagate (teal/coral).
+3. Handle: prefix `pagate.cl/u/`, debounce, Disponible / No disponible; no se puede seguir si está tomado o es inválido.
 4. Recargar a mitad de camino reanuda el paso; no hay atajo al dashboard.
 5. Productos: multi-select + “Configurar después”; **no** crea un producto.
-6. Pagos: tres cards; transferencia habla de CuentaRUT, no de CBU; “Omitir este paso” funciona; no se exige un método.
+6. Pagos: tres cards; transferencia habla de CuentaRUT; “Omitir este paso” funciona; no se exige un método.
 7. Descargas: default 7 días; una compra digital nueva usa 7 días (o lo elegido) y **2** descargas, no 5.
 8. Perfil: foto opcional, nombre requerido, bio 150, redes opcionales, WhatsApp incluido, “Saltar por ahora” cierra el flujo.
 9. Finalizar setea `onboarding_completed_at` y manda a `/dashboard` **sin** rediseñar el panel.
 10. Un segundo login de un usuario que ya finalizó va a `/dashboard`, no al wizard.
 11. Nada de esto modifica el botón ni el provider de Google login.
-12. Mobile: un columna, footer usable, stepper compacto, cards de producto apiladas.
+12. Mobile: una columna, footer usable, stepper compacto, cards de producto apiladas.
 13. `schema.sql` y el ALTER de producción quedan en el PR.
 
 ---
@@ -670,41 +702,25 @@ Un revisor debe poder marcar esto:
 
 Login ya existe; no mockear Auth.
 
-1. Cuenta Google nueva (o borrar su fila en `stores`).
+1. Cuenta nueva (o borrar su fila en `stores`).
 2. Recorrer los 5 pasos con handle libre, los dos tipos de producto, omitir pagos, dejar 7 días, nombre + bio, saltar redes → dashboard actual.
 3. Otra cuenta: parar en Pagos, cerrar el browser, volver a `studio.pagate.cl` → debe abrir Pagos, no Handle ni dashboard.
 4. Handle `camila.nutri` y `pagate` → no disponible.
-5. Comprar un digital de prueba (flujo de checkout ya existente) y verificar `expires_at` + `downloads_remaining` en `purchases`.
+5. Comprar un digital de prueba (checkout existente) y verificar `expires_at` + `downloads_remaining` en `purchases`.
 6. Viewport 375px y 1280px.
 
 No hace falta e2e automatizado si el repo no tiene runner; si se agrega algo, un test de `isValidUsername` + cálculo de expiry basta.
 
 ---
 
-## 17. Referencias visuales
+## 17. Decisiones cerradas
 
-| Archivo | Uso |
-| --- | --- |
-| `referencias/01-handle.jpg` | Layout paso 1 |
-| `referencias/02-product-type.jpg` | Layout paso 2 |
-| `referencias/03-pagos-mercadopago.jpg` | Card MP + stepper de 5 |
-| `referencias/04-pagos-gocuotas-transferencia.jpg` | Go Cuotas + transferencia (localizar a CuentaRUT) |
-| `referencias/05-download-expiry.jpg` | Chips y caja default |
-| `referencias/06-perfil-identidad.jpg` | Foto, nombre, bio |
-| `referencias/07-perfil-redes.jpg` | Campos sociales + saltar |
-| `referencias/08-dashboard-cuenta-8-NO-IMPLEMENTAR.jpg` | Solo destino. **Prohibido implementar.** |
-
-Pulgy es la coreografía. Pagate es el traje.
-
----
-
-## 18. Decisiones ya tomadas (no reabrir en la implementación)
-
-1. Studio en subdominio, no `pagate.cl/crear` como UI de onboarding.
-2. Cinco pasos, aunque capturas tempranas de Pulgy muestren cuatro; Descargas está en el brief de lanzamiento.
-3. Transferencia = CuentaRUT Chile, no CVU/CBU.
-4. WhatsApp se suma a las redes de Pulgy porque la vitrina Pagate ya lo usa.
+1. Studio en subdominio; no usar `pagate.cl/crear` como UI de onboarding.
+2. Cinco pasos fijos: Handle, Productos, Pagos, Descargas, Perfil.
+3. Transferencia = CuentaRUT Chile (no CVU/CBU).
+4. WhatsApp se suma a las redes porque la vitrina Pagate ya lo usa.
 5. Identidad y redes son dos pantallas del paso 5.
-6. Este PR de especificación no incluye código de producto; el PR de implementación es otro.
+6. Este documento es la única fuente de verdad visual/funcional del wizard: no depende de material externo.
+7. El PR de implementación es otro; este archivo solo especifica.
 
-Si alguna de estas decisiones está mal, se corrige **este markdown** antes de escribir código.
+Si algo de este documento está mal, se corrige **aquí** antes de escribir código.
