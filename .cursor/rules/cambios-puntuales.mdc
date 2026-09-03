@@ -1,0 +1,13 @@
+---
+description: Cambios puntuales de código — sin verificación extra, el usuario revisa
+alwaysApply: true
+---
+
+# Cambios puntuales
+
+Cuando el usuario da un selector, clase o archivo y una instrucción clara (por ejemplo quitar un box-shadow de `.btn-primary`):
+
+- Cambia **solo eso**. No amplíes alcance, no toques hover ni variantes, no agregues clases extra ni wrappers.
+- No verifiques en el navegador, no tomes screenshots, no inspecciones estilos computados, no abras el sitio “para confirmar”.
+- Termina el cambio, avisa que está listo para revisar, y espera. Un ajuste de este tipo debe ser cuestión de segundos.
+- Si hace falta commit/push, hazlo y pasa al siguiente mensaje. No conviertas un cambio de una línea en una investigación.
