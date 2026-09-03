@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import {
   getPurchaseByToken,
   getStoreById,
@@ -155,9 +154,5 @@ export async function fulfillSessionAfterPaid(
     } catch (err) {
       console.error("[pay] calendar after pay failed", err);
     }
-  } else if (!purchase.meetUrl) {
-    await updatePurchaseCalendar(purchase.token, {
-      meetUrl: `https://meet.google.com/pagate-demo-${randomBytes(3).toString("hex")}`,
-    });
   }
 }

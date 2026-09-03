@@ -141,7 +141,7 @@ export async function isMercadoPagoConnected(userId: string | null): Promise<boo
   return Boolean(tokens?.access_token);
 }
 
-/** Token del vendedor (OAuth). Demo Camila usa el token de Pagate. */
+/** Token del vendedor (OAuth). Tiendas sin dueño usan el token de plataforma. */
 export async function resolveCheckoutAccessToken(
   store: StoreBundle,
 ): Promise<string | null> {

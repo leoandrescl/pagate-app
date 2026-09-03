@@ -26,9 +26,10 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
     typeQuery === "community" || productId.startsWith("mock_comm");
 
   if (isCommunityMock) {
-    const storeHref = `/u/${u || "camila.nutri"}`;
+    if (!u) notFound();
+    const storeHref = `/u/${u}`;
     return (
-      <CartCheckoutProviders username={u || "camila.nutri"}>
+      <CartCheckoutProviders username={u}>
         <div className="atmosphere min-h-screen">
           <header className="shell flex items-center justify-between py-5">
             <Link href={storeHref} className="text-sm font-semibold text-[var(--ink-muted)]">

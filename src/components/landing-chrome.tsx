@@ -34,9 +34,6 @@ export function LandingHeader() {
             <Link href="/#precios" className="btn-ghost text-sm">
               Precios
             </Link>
-            <Link href="/u/camila.nutri" className="btn-ghost text-sm">
-              Ver demo
-            </Link>
             <Link href={studioHref("/login")} className="btn-primary text-sm">
               Crear tu tienda
             </Link>
@@ -87,13 +84,6 @@ export function LandingHeader() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/u/camila.nutri"
-              className="flex min-h-11 items-center px-1 text-base font-semibold text-[var(--ink)]"
-              onClick={() => setOpen(false)}
-            >
-              Ver demo
-            </Link>
             <Link
               href={studioHref("/login")}
               className="btn-primary mt-3 w-full justify-center text-sm"

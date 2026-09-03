@@ -1,4 +1,4 @@
-/** // MOCK: datos estáticos para funcionalidades frontend sin backend */
+/** Tipos y constantes de vitrina (cupones, comunidad, marca). */
 
 export type CouponType = "percent" | "fixed";
 
@@ -9,23 +9,6 @@ export type MockCoupon = {
   expiresAt: string;
   active: boolean;
 };
-
-export const MOCK_COUPONS: MockCoupon[] = [
-  {
-    code: "BIENVENIDA10",
-    type: "percent",
-    value: 10,
-    expiresAt: "2026-12-31",
-    active: true,
-  },
-  {
-    code: "NUTRI5000",
-    type: "fixed",
-    value: 5000,
-    expiresAt: "2026-08-31",
-    active: true,
-  },
-];
 
 /** Monto mínimo CLP para mostrar badge de cuotas sin interés */
 export const INSTALLMENT_THRESHOLD_CLP = 30_000;
@@ -43,19 +26,6 @@ export type MockCommunityProduct = {
   platform: CommunityPlatform;
   inviteUrl: string;
   createdAt: string;
-};
-
-// MOCK: producto de comunidad de ejemplo en vitrina
-export const MOCK_COMMUNITY_PRODUCT: MockCommunityProduct = {
-  id: "mock_community_nutri",
-  type: "community",
-  name: "Comunidad Nutrición consciente",
-  description:
-    "Grupo privado con recetas semanales, tips y soporte entre miembros. Acceso inmediato tras la compra.",
-  priceClp: 12_990,
-  platform: "whatsapp",
-  inviteUrl: "https://chat.whatsapp.com/mock-invite-pagate",
-  createdAt: new Date().toISOString(),
 };
 
 import type { CSSProperties } from "react";

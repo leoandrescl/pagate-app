@@ -31,8 +31,8 @@ export default async function LoginPage() {
           >
             Pagate
           </Link>
-          <Link href={`${getAppBaseUrl()}/u/camila.nutri`} className="btn-ghost text-sm">
-            Ver demo
+          <Link href={getAppBaseUrl()} className="btn-ghost text-sm">
+            Volver a Pagate
           </Link>
         </div>
       </header>

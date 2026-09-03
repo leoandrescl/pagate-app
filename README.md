@@ -25,7 +25,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000). La landing y la demo de Camila (`/u/camila.nutri`) se pueden ver sin Supabase; crear tienda y el panel requieren Auth.
+Abre [http://localhost:3000](http://localhost:3000). La landing se ve sin Supabase; crear tienda y el panel requieren Auth.
 
 ## Recorrido
 
@@ -40,7 +40,7 @@ Abre [http://localhost:3000](http://localhost:3000). La landing y la demo de Cam
 ## Supabase (obligatorio para cuentas reales)
 
 1. Crea un proyecto en [supabase.com](https://supabase.com)
-2. SQL Editor → pega y ejecuta [`supabase/schema.sql`](./supabase/schema.sql) (tablas, RLS y seed de Camila)
+2. SQL Editor → pega y ejecuta [`supabase/schema.sql`](./supabase/schema.sql) (tablas y RLS)
 3. Authentication → Providers → Google: Client ID y Secret del mismo proyecto de Google Cloud (scopes de login: email, profile, openid)
 4. Authentication → URL configuration:
    - Site URL: `http://localhost:3000` (local) / `https://studio.pagate.cl` (prod)

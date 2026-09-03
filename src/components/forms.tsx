@@ -45,7 +45,7 @@ export function AddProductForm() {
       return;
     }
     if (!Number.isFinite(priceClp) || priceClp < 1000) {
-      setCommunityError("El precio mínimo demo es $1.000 CLP.");
+      setCommunityError("El precio mínimo es $1.000 CLP.");
       return;
     }
     if (!communityInvite.trim()) {
@@ -405,7 +405,7 @@ export function CheckoutForm({
           <p className="mb-2 text-sm font-medium text-[var(--ink-muted)]">Elige un horario</p>
           {slots.length === 0 ? (
             <p className="rounded-xl bg-[var(--fog)] px-3 py-2 text-sm text-[var(--coral)]">
-              No hay horarios libres. Prueba reiniciar la demo o ajustar disponibilidad.
+              No hay horarios libres. Ajusta la disponibilidad en el panel.
             </p>
           ) : (
             <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">

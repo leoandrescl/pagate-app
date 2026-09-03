@@ -220,7 +220,7 @@ create policy "mp tokens own"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- Idempotent upgrades for existing projects (must run before seed inserts)
+-- Idempotent upgrades for existing projects
 alter table public.stores add column if not exists onboarding_step text not null default 'handle';
 alter table public.stores add column if not exists intended_product_types text[] not null default '{}';
 alter table public.stores add column if not exists download_expiry_days integer default 7;
@@ -229,77 +229,14 @@ alter table public.stores add column if not exists payment_settings jsonb not nu
 alter table public.stores add column if not exists social_links jsonb not null default '{}'::jsonb;
 alter table public.stores add column if not exists avatar_url text;
 
--- Demo store (Camila). owner_id is null so nobody can mutate it from the panel.
-insert into public.stores (
-  id,
-  owner_id,
-  username,
-  display_name,
-  bio,
-  headline,
-  avatar_initials,
-  onboarding_completed_at,
-  onboarding_step,
-  download_expiry_days,
-  download_max_count
-) values (
-  '11111111-1111-4111-8111-111111111111',
-  null,
-  'camila.nutri',
-  'Camila Rojas',
-  'Nutricionista clínica. Planes descargables, guías prácticas y sesiones 1:1 por videollamada.',
-  'Nutrición simple para tu semana',
-  'CR',
-  now(),
-  'done',
-  7,
-  5
-)
-on conflict (id) do nothing;
+-- Purchases reference products without ON DELETE CASCADE; remove those rows first.
+delete from public.purchases
+where store_id = '11111111-1111-4111-8111-111111111111';
 
-insert into public.products (
-  id, store_id, type, name, description, price_clp, duration_minutes, file_name, file_path
-) values
-  (
-    'prod_sesion_nutri',
-    '11111111-1111-4111-8111-111111111111',
-    'session',
-    'Sesión nutricional 1:1 (45 min)',
-    'Videollamada para revisar tu alimentación y armar un plan semanal. Eliges horario al pagar.',
-    35000,
-    45,
-    null,
-    null
-  ),
-  (
-    'prod_guia_semana',
-    '11111111-1111-4111-8111-111111111111',
-    'digital',
-    'Guía de meal prep (7 días)',
-    'Menús, lista de compras y tip de batch cooking en PDF. Ideal para empezar sin complicarte.',
-    7990,
-    null,
-    'guia-meal-prep-pagate.pdf',
-    '/demo/guia-meal-prep-pagate.pdf'
-  ),
-  (
-    'prod_habitos',
-    '11111111-1111-4111-8111-111111111111',
-    'digital',
-    'Workbook: hábitos alimentarios',
-    'Plantillas imprimibles para registrar comidas, hambre real y metas semanales.',
-    4990,
-    null,
-    'workbook-habitos-pagate.pdf',
-    '/demo/workbook-habitos-pagate.pdf'
-  )
-on conflict (id) do nothing;
+delete from public.products
+where store_id = '11111111-1111-4111-8111-111111111111';
 
-update public.stores
-set
-  onboarding_step = 'done',
-  download_expiry_days = 7,
-  download_max_count = 5
+delete from public.stores
 where id = '11111111-1111-4111-8111-111111111111';
 
 alter table public.purchases add column if not exists payment_method text not null default 'mercadopago';

@@ -68,9 +68,6 @@ export default async function ComparisonPage({ params }: Props) {
           <Link href={studioHref("/login")} className="btn-primary">
             Crear tu tienda
           </Link>
-          <Link href="/u/camila.nutri" className="btn-ghost">
-            Ver demo
-          </Link>
         </div>
       </main>
 

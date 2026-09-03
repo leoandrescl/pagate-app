@@ -40,7 +40,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Archivo demo no encontrado." },
+      { error: "Archivo no encontrado." },
       { status: 404 },
     );
   }

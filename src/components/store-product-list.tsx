@@ -5,7 +5,7 @@ import { useState } from "react";
 import { formatClp } from "@/lib/format-clp";
 import { useCart } from "@/lib/cart-context";
 import { useStoreSettings } from "@/lib/store-settings-context";
-import { MOCK_COMMUNITY_PRODUCT, type MockCommunityProduct } from "@/lib/mock-data";
+import type { MockCommunityProduct } from "@/lib/mock-data";
 import { InstallmentBadge } from "@/components/installment-badge";
 import type { Product } from "@/lib/types";
 
@@ -130,7 +130,6 @@ export function StoreProductList({
 
   const allProducts: DisplayProduct[] = [
     ...products,
-    MOCK_COMMUNITY_PRODUCT,
     ...communityProducts,
   ];
 

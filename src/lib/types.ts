@@ -93,13 +93,10 @@ export type Purchase = {
   paymentMethod?: PaymentMethod;
 };
 
-export type DemoStore = {
+export type StoreBundle = {
   creator: Creator;
   products: Product[];
   purchases: Purchase[];
-};
-
-export type StoreBundle = DemoStore & {
   ownerId: string | null;
   onboardingCompletedAt: string | null;
   onboardingStep: OnboardingStepId;

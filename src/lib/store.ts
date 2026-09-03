@@ -29,10 +29,8 @@ export const DEFAULT_AVAILABILITY: Availability = {
   slotMinutes: 60,
 };
 
-export const DEMO_STORE_ID = "11111111-1111-4111-8111-111111111111";
-export const DEMO_USERNAME = "camila.nutri";
 const RESERVED_USERNAMES = new Set([
-  DEMO_USERNAME,
+  "camila.nutri",
   "pagate",
   "studio",
   "www",
@@ -98,56 +96,6 @@ type PurchaseRow = {
   mp_payment_id: string | null;
   payment_method: PaymentMethod | null;
 };
-
-export const DEMO_CREATOR: Creator = {
-  id: DEMO_STORE_ID,
-  username: DEMO_USERNAME,
-  displayName: "Camila Rojas",
-  bio: "Nutricionista clínica. Planes descargables, guías prácticas y sesiones 1:1 por videollamada.",
-  headline: "Nutrición simple para tu semana",
-  avatarInitials: "CR",
-  availability: DEFAULT_AVAILABILITY,
-};
-
-function demoProducts(): Product[] {
-  return [
-    {
-      id: "prod_sesion_nutri",
-      creatorId: DEMO_STORE_ID,
-      type: "session",
-      name: "Sesión nutricional 1:1 (45 min)",
-      description:
-        "Videollamada para revisar tu alimentación y armar un plan semanal. Eliges horario al pagar.",
-      priceClp: 35000,
-      durationMinutes: 45,
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: "prod_guia_semana",
-      creatorId: DEMO_STORE_ID,
-      type: "digital",
-      name: "Guía de meal prep (7 días)",
-      description:
-        "Menús, lista de compras y tip de batch cooking en PDF. Ideal para empezar sin complicarte.",
-      priceClp: 7990,
-      fileName: "guia-meal-prep-pagate.pdf",
-      filePath: "/demo/guia-meal-prep-pagate.pdf",
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: "prod_habitos",
-      creatorId: DEMO_STORE_ID,
-      type: "digital",
-      name: "Workbook: hábitos alimentarios",
-      description:
-        "Plantillas imprimibles para registrar comidas, hambre real y metas semanales.",
-      priceClp: 4990,
-      fileName: "workbook-habitos-pagate.pdf",
-      filePath: "/demo/workbook-habitos-pagate.pdf",
-      createdAt: new Date(0).toISOString(),
-    },
-  ];
-}
 
 function sortProducts(products: Product[]): Product[] {
   return [...products].sort((a, b) => {
@@ -296,30 +244,10 @@ async function bundleFromRow(row: StoreRow): Promise<StoreBundle> {
   };
 }
 
-function demoBundle(): StoreBundle {
-  return {
-    creator: DEMO_CREATOR,
-    products: demoProducts(),
-    purchases: [],
-    ownerId: null,
-    onboardingCompletedAt: new Date(0).toISOString(),
-    onboardingStep: "done",
-    intendedProductTypes: ["digital", "session"],
-    downloadExpiryDays: 7,
-    downloadMaxCount: 5,
-    paymentSettings: DEFAULT_PAYMENT,
-    socialLinks: {},
-    avatarUrl: null,
-  };
-}
-
 export async function getStoreByUsername(
   username: string,
 ): Promise<StoreBundle | null> {
-  if (!isSupabaseAdminConfigured()) {
-    if (username.toLowerCase() === DEMO_USERNAME) return demoBundle();
-    return null;
-  }
+  if (!isSupabaseAdminConfigured()) return null;
   const { data, error } = await db()
     .from("stores")
     .select("*")
@@ -333,10 +261,7 @@ export async function getStoreByUsername(
 export async function getStoreById(
   storeId: string,
 ): Promise<StoreBundle | null> {
-  if (!isSupabaseAdminConfigured()) {
-    if (storeId === DEMO_STORE_ID) return demoBundle();
-    return null;
-  }
+  if (!isSupabaseAdminConfigured()) return null;
   const row = await fetchStoreRowById(storeId);
   if (!row) return null;
   return bundleFromRow(row);
@@ -369,9 +294,7 @@ export async function listProductsByUsername(
 }
 
 export async function getProduct(productId: string): Promise<Product | null> {
-  if (!isSupabaseAdminConfigured()) {
-    return demoProducts().find((p) => p.id === productId) ?? null;
-  }
+  if (!isSupabaseAdminConfigured()) return null;
   const { data, error } = await db()
     .from("products")
     .select("*")
@@ -411,8 +334,6 @@ export async function createProduct(
     description: input.description.trim(),
     priceClp: Math.max(0, Math.round(input.priceClp)),
     durationMinutes: isSession ? input.durationMinutes ?? 45 : undefined,
-    fileName: isSession ? undefined : "guia-meal-prep-pagate.pdf",
-    filePath: isSession ? undefined : "/demo/guia-meal-prep-pagate.pdf",
     createdAt: new Date().toISOString(),
   };
   const { error } = await db().from("products").insert({

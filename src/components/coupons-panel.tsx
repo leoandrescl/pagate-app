@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatClp } from "@/lib/format-clp";
-import { MOCK_COUPONS, type CouponType } from "@/lib/mock-data";
+import { type CouponType } from "@/lib/mock-data";
 import { useStoreSettings } from "@/lib/store-settings-context";
 
 export function CouponsPanel() {
@@ -13,9 +13,7 @@ export function CouponsPanel() {
   const [expiresAt, setExpiresAt] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
-  const allCoupons = [...coupons, ...MOCK_COUPONS.filter(
-    (m) => !coupons.some((c) => c.code === m.code),
-  )];
+  const allCoupons = coupons;
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -149,7 +147,7 @@ export function CouponsPanel() {
           Crear cupón
         </button>
         <p className="text-xs text-[var(--ink-muted)]">
-          // MOCK: cupones demo BIENVENIDA10 y NUTRI5000 disponibles en checkout. Los nuevos se guardan en localStorage.
+          Los cupones se aplican en el checkout de tu tienda.
         </p>
       </form>
     </div>

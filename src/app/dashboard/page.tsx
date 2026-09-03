@@ -151,14 +151,14 @@ export default async function DashboardPage({ searchParams }: Props) {
                           </p>
                         ) : null}
                       </div>
-                      {purchase.meetUrl ? (
+                      {purchase.meetUrl && purchase.googleEventId ? (
                         <a
                           href={purchase.meetUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="text-sm font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline"
                         >
-                          {purchase.googleEventId ? "Abrir Meet" : "Meet demo"}
+                          Abrir Meet
                         </a>
                       ) : null}
                     </div>

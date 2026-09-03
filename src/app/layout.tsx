@@ -11,7 +11,7 @@ const sans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Pagate — Vende y entrega desde un solo link",
   description:
-    "Demo localhost: vitrina + cobro mock + entrega de archivos digitales para creadores en Chile.",
+    "Vitrina, cobro en CLP y entrega de archivos o sesiones 1:1 para creadores en Chile.",
 };
 
 export default function RootLayout({

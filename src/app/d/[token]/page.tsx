@@ -29,7 +29,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   if (!result) notFound();
 
   const store = await getStoreById(result.product.creatorId);
-  const storeHref = `/u/${store?.creator.username ?? "camila.nutri"}`;
+  if (!store) notFound();
+  const storeHref = `/u/${store.creator.username}`;
   const { purchase, product } = result;
   const isSession = product.type === "session";
   const isPaid = purchase.status === "paid";
@@ -121,7 +122,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
                   <p className="mt-2 text-xs text-[var(--ink-muted)]">
                     {purchase.googleEventId
                       ? "Evento creado en Google Calendar · invitación enviada al email del comprador."
-                      : "Link Meet de demostración (conecta Google Calendar en el panel para eventos reales)."}
+                      : "Conecta Google Calendar en el panel para un Meet real."}
                   </p>
                 </div>
               ) : null}

@@ -83,7 +83,7 @@ export const comparisons: Comparison[] = [
       {
         label: "Medios de pago",
         competitor: "Stan Store depende de pasarelas internacionales.",
-        pagate: "Pagate usa Webpay y transferencia.",
+        pagate: "Pagate usa Mercado Pago y transferencia.",
       },
       {
         label: "Boleta",
@@ -132,7 +132,7 @@ export const comparisons: Comparison[] = [
       {
         label: "Moneda y pagos",
         competitor: "Gumroad opera en USD.",
-        pagate: "Pagate cobra en CLP con Webpay y transferencia.",
+        pagate: "Pagate cobra en CLP con Mercado Pago y transferencia.",
       },
       {
         label: "Sesiones",

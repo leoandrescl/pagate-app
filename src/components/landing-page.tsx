@@ -239,10 +239,10 @@ function FeaturePreview({ kind }: { kind: (typeof FEATURES)[number]["preview"] }
         <div className="h-10 bg-gradient-to-r from-[var(--teal)] to-[var(--mint)]" />
         <div className="relative px-3 pb-3 pt-0 text-center">
           <div className="mx-auto -mt-4 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[var(--teal-deep)] text-[0.6rem] font-semibold text-white">
-            CN
+            P
           </div>
-          <p className="mt-1 font-display text-sm text-[var(--ink)]">Camila Nutri</p>
-          <p className="text-[0.65rem] text-[var(--teal)]">Planes y sesiones online</p>
+          <p className="mt-1 font-display text-sm text-[var(--ink)]">Tu tienda</p>
+          <p className="text-[0.65rem] text-[var(--teal)]">Productos y sesiones online</p>
         </div>
       </div>
     );
@@ -258,7 +258,7 @@ function FeaturePreview({ kind }: { kind: (typeof FEATURES)[number]["preview"] }
   return (
     <div className="mt-4">
       <span className="inline-flex items-center rounded-full border border-[var(--teal)]/30 bg-[var(--mint)]/40 px-2.5 py-1 text-xs font-semibold text-[var(--teal-deep)]">
-        Disponible en cuotas sin interés · 3× $9.990
+        Pago con Mercado Pago
       </span>
     </div>
   );
@@ -363,12 +363,9 @@ export function LandingPage() {
             <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
-            <Link href="/u/camila.nutri" className="btn-ghost w-full justify-center sm:w-auto">
-              Ver tienda demo
-            </Link>
           </div>
           <p className="mt-6 text-sm text-[var(--ink-muted)]">
-            Demo · Mercado Pago · sin comisión de plataforma
+            Mercado Pago · sin comisión de plataforma
           </p>
         </section>
 
@@ -663,9 +660,6 @@ export function LandingPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
-            </Link>
-            <Link href="/u/camila.nutri" className="btn-ghost w-full justify-center sm:w-auto">
-              Ver tienda demo
             </Link>
           </div>
         </section>

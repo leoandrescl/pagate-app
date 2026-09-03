@@ -71,7 +71,7 @@ export function CouponField({ subtotalClp, onApplied }: Props) {
               setCode(e.target.value.toUpperCase());
               setError(null);
             }}
-            placeholder="Ej. BIENVENIDA10"
+            placeholder="Ej. VERANO20"
             className="field flex-1 uppercase"
           />
           <button type="button" onClick={handleApply} className="btn-ghost shrink-0 text-sm">

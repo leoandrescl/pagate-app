@@ -2,7 +2,6 @@ import { formatClp } from "@/lib/format-clp";
 import {
   INSTALLMENT_COUNT,
   INSTALLMENT_THRESHOLD_CLP,
-  MOCK_COUPONS,
   type MockCoupon,
 } from "@/lib/mock-data";
 
@@ -15,12 +14,7 @@ export function validateCoupon(
   const normalized = code.trim().toUpperCase();
   if (!normalized) return null;
 
-  const allCoupons = [
-    ...extraCoupons,
-    ...MOCK_COUPONS.filter(
-      (m) => !extraCoupons.some((c) => c.code === m.code),
-    ),
-  ];
+  const allCoupons = extraCoupons;
 
   const coupon = allCoupons.find(
     (c) => c.code === normalized && c.active,

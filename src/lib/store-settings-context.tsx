@@ -25,7 +25,7 @@ const SETTINGS_KEY = "pagate-store-settings";
 const COUPONS_KEY = "pagate-creator-coupons";
 const COMMUNITY_KEY = "pagate-community-products";
 
-/** Tras crear tienda: limpia settings demo de Camila y deja headline/bio nuevos. */
+/** Tras crear tienda: deja headline/bio nuevos. */
 export function seedClientStoreSettings(input: {
   headline: string;
   bio: string;
@@ -70,10 +70,9 @@ function defaultSettings(
     bio,
     headline,
     socialLinks: {
-      // MOCK: enlaces de ejemplo
-      instagram: "https://instagram.com/camila.nutri",
-      tiktok: "https://tiktok.com/@camila.nutri",
-      whatsapp: "https://wa.me/56912345678",
+      instagram: "",
+      tiktok: "",
+      whatsapp: "",
     },
     brandColor: DEFAULT_BRAND_COLOR.value,
   };
@@ -104,7 +103,14 @@ export function StoreSettingsProvider({
         setSettings({ ...defaultSettings(headline, bio), ...JSON.parse(raw) });
       }
       const couponsRaw = localStorage.getItem(COUPONS_KEY);
-      if (couponsRaw) setCoupons(JSON.parse(couponsRaw) as MockCoupon[]);
+      if (couponsRaw) {
+        const parsed = JSON.parse(couponsRaw) as MockCoupon[];
+        setCoupons(
+          parsed.filter(
+            (c) => c.code !== "NUTRI5000" && c.code !== "BIENVENIDA10",
+          ),
+        );
+      }
       const communityRaw = localStorage.getItem(COMMUNITY_KEY);
       if (communityRaw) {
         setCommunityProducts(JSON.parse(communityRaw) as MockCommunityProduct[]);

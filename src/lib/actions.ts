@@ -436,7 +436,7 @@ export async function updateAvailabilityAction(
   const slotMinutes = Number(formData.get("slotMinutes"));
 
   if (![9, 10, 11].includes(startHour)) {
-    return { ok: false, error: "Hora de inicio demo: 9, 10 u 11." };
+    return { ok: false, error: "Hora de inicio: 9, 10 u 11." };
   }
   if (![16, 17, 18, 19].includes(endHour) || endHour <= startHour) {
     return { ok: false, error: "Hora de fin debe ser posterior al inicio." };
