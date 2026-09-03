@@ -10,6 +10,10 @@ import {
   createStore,
   getMyStore,
   getProduct,
+  getPurchaseByToken,
+  getStoreById,
+  getStoreForProduct,
+  isTransferReady,
   isValidUsername,
   normalizeUsername,
   updateAvailability,
@@ -17,10 +21,11 @@ import {
 } from "@/lib/store";
 import {
   createCheckoutPreference,
-  isMercadoPagoConfigured,
+  resolveCheckoutAccessToken,
 } from "@/lib/mercadopago";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
@@ -201,12 +206,41 @@ export async function checkoutAction(
   if (!product) {
     return { ok: false, error: "Producto no encontrado." };
   }
+  const store = await getStoreForProduct(productId);
+  if (!store) {
+    return { ok: false, error: "Tienda no encontrada." };
+  }
+
+  const method =
+    String(formData.get("paymentMethod") ?? "mercadopago") === "transfer"
+      ? "transfer"
+      : "mercadopago";
 
   try {
-    if (!isMercadoPagoConfigured()) {
+    if (method === "transfer") {
+      if (!isTransferReady(store.paymentSettings)) {
+        return {
+          ok: false,
+          error: "Esta tienda no tiene transferencia configurada.",
+        };
+      }
+      const purchase = await createPurchase({
+        productId,
+        buyerName,
+        buyerEmail,
+        slotStart,
+        status: "pending",
+        paymentMethod: "transfer",
+      });
+      revalidatePath("/dashboard");
+      return { ok: true, redirectTo: `/checkout/transferencia?token=${purchase.token}` };
+    }
+
+    const accessToken = await resolveCheckoutAccessToken(store);
+    if (!accessToken) {
       return {
         ok: false,
-        error: "Mercado Pago no está configurado (falta MP_ACCESS_TOKEN).",
+        error: "El vendedor aún no conecta su cuenta de Mercado Pago.",
       };
     }
 
@@ -216,6 +250,7 @@ export async function checkoutAction(
       buyerEmail,
       slotStart,
       status: "pending",
+      paymentMethod: "mercadopago",
     });
 
     const preference = await createCheckoutPreference({
@@ -224,6 +259,8 @@ export async function checkoutAction(
       buyerName,
       buyerEmail,
       slotStart,
+      accessToken,
+      applyMarketplaceFee: !store.ownerId,
     });
 
     await updatePurchasePayment(purchase.token, {
@@ -253,6 +290,7 @@ export async function checkoutCartAction(input: {
   sessionSlots: Record<string, string>;
   buyerName: string;
   buyerEmail: string;
+  paymentMethod?: "mercadopago" | "transfer";
 }): Promise<ActionResult> {
   const buyerName = input.buyerName.trim();
   const buyerEmail = input.buyerEmail.trim();
@@ -275,10 +313,51 @@ export async function checkoutCartAction(input: {
   }
 
   try {
-    if (!isMercadoPagoConfigured()) {
+    const firstProduct = await getProduct(items[0].productId);
+    const store = firstProduct
+      ? await getStoreForProduct(firstProduct.id)
+      : null;
+    if (!store) {
+      return { ok: false, error: "Tienda no encontrada." };
+    }
+
+    const method = input.paymentMethod === "transfer" ? "transfer" : "mercadopago";
+
+    if (method === "transfer") {
+      if (!isTransferReady(store.paymentSettings)) {
+        return {
+          ok: false,
+          error: "Esta tienda no tiene transferencia configurada.",
+        };
+      }
+      const purchases = [];
+      for (const item of items) {
+        const product = await getProduct(item.productId);
+        if (!product) continue;
+        const purchase = await createPurchase({
+          productId: product.id,
+          buyerName,
+          buyerEmail,
+          slotStart:
+            product.type === "session"
+              ? input.sessionSlots[item.productId]
+              : undefined,
+          status: "pending",
+          paymentMethod: "transfer",
+        });
+        purchases.push(purchase);
+      }
+      const token = purchases[0]?.token;
+      if (!token) return { ok: false, error: "No se pudo crear la compra." };
+      revalidatePath("/dashboard");
+      return { ok: true, redirectTo: `/checkout/transferencia?token=${token}` };
+    }
+
+    const accessToken = await resolveCheckoutAccessToken(store);
+    if (!accessToken) {
       return {
         ok: false,
-        error: "Mercado Pago no está configurado (falta MP_ACCESS_TOKEN).",
+        error: "El vendedor aún no conecta su cuenta de Mercado Pago.",
       };
     }
 
@@ -295,6 +374,7 @@ export async function checkoutCartAction(input: {
             ? input.sessionSlots[item.productId]
             : undefined,
         status: "pending",
+        paymentMethod: "mercadopago",
       });
       purchases.push(purchase);
     }
@@ -321,6 +401,8 @@ export async function checkoutCartAction(input: {
       extraMetadata: {
         cart_product_ids: items.map((item) => item.productId).join(","),
       },
+      accessToken,
+      applyMarketplaceFee: !store.ownerId,
     });
 
     for (const purchase of purchases) {
@@ -366,6 +448,27 @@ export async function updateAvailabilityAction(
   await updateAvailability(mine.creator.id, { startHour, endHour, slotMinutes });
   await revalidateCreatorPaths(mine.creator.username);
   return { ok: true };
+}
+
+export async function confirmTransferPaidAction(
+  formData: FormData,
+): Promise<void> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) redirect("/onboarding");
+  const token = String(formData.get("token") ?? "");
+  const found = token ? await getPurchaseByToken(token) : null;
+  if (!found || found.product.creatorId !== mine.creator.id) {
+    redirect("/dashboard?mp=error");
+  }
+  if (found.purchase.paymentMethod !== "transfer") {
+    redirect("/dashboard");
+  }
+  await updatePurchasePayment(token, { status: "paid" });
+  await fulfillSessionAfterPaid(token, "Pago por transferencia confirmado");
+  const store = await getStoreById(found.product.creatorId);
+  if (store) await revalidateCreatorPaths(store.creator.username);
+  redirect("/dashboard?mp=transfer_paid");
 }
 
 export async function signOutAction(): Promise<void> {

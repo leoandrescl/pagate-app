@@ -3,12 +3,13 @@ import {
   extractPaymentId,
   getAppBaseUrl,
   getPayment,
+  resolveAccessTokenForPurchase,
 } from "@/lib/mercadopago";
 import {
   fulfillApprovedPayment,
   syncPurchaseFromMercadoPago,
 } from "@/lib/fulfill-payment";
-import { getPurchaseByToken, updatePurchasePayment } from "@/lib/store";
+import { getPurchaseByToken, getStoreById, updatePurchasePayment } from "@/lib/store";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,8 +29,17 @@ export async function GET(request: Request) {
     searchParams.get("collection_status") === "approved";
 
   try {
+    let accessToken: string | null = null;
+    if (externalRef) {
+      const found = await getPurchaseByToken(externalRef);
+      const store = found
+        ? await getStoreById(found.product.creatorId)
+        : null;
+      accessToken = await resolveAccessTokenForPurchase(store?.ownerId ?? null);
+    }
+
     if (paymentId && mpApproved) {
-      const payment = await getPayment(paymentId);
+      const payment = await getPayment(paymentId, accessToken);
       const fulfilled = await fulfillApprovedPayment(payment);
       if (fulfilled) {
         return NextResponse.redirect(

@@ -33,7 +33,7 @@ export function CartPageContent({ username }: { username: string }) {
       <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
         <h1 className="font-display text-3xl text-[var(--ink)]">Tu carrito</h1>
         <p className="mt-1 text-sm text-[var(--ink-muted)]">
-          {items.length} producto{items.length !== 1 ? "s" : ""} · pago con Webpay, transferencia o Mercado Pago (demo)
+          {items.length} producto{items.length !== 1 ? "s" : ""} · Mercado Pago o transferencia
         </p>
 
         <ul className="mt-6 space-y-4">

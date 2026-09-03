@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CartCheckoutForm } from "@/components/cart-checkout-form";
 import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
-import { getStoreByUsername } from "@/lib/store";
+import { getStoreByUsername, isTransferReady } from "@/lib/store";
 import {
   fetchBusyIntervals,
   isGoogleConnected,
 } from "@/lib/google-calendar";
+import { isMercadoPagoConnected } from "@/lib/mercadopago";
 import { bookedSlotStarts, generateAvailableSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,10 @@ export default async function CartCheckoutPage({ searchParams }: Props) {
   if (!store) notFound();
   const creator = store.creator;
   const googleOn = await isGoogleConnected(store.ownerId);
+  const mpOn = store.ownerId
+    ? await isMercadoPagoConnected(store.ownerId)
+    : Boolean(process.env.MP_ACCESS_TOKEN?.trim());
+  const transferOn = isTransferReady(store.paymentSettings);
 
   let busy: { start: string; end: string }[] = [];
   if (googleOn) {
@@ -60,12 +65,18 @@ export default async function CartCheckoutPage({ searchParams }: Props) {
             Checkout · carrito
           </h1>
           <p className="animate-rise mt-2 text-sm text-[var(--ink-muted)]">
-            Pago con Mercado Pago (Checkout Pro). Zona horaria Chile (America/Santiago).
+            {mpOn && transferOn
+              ? "Paga con Mercado Pago o por transferencia a la cuenta del vendedor."
+              : transferOn
+                ? "Esta tienda cobra por transferencia bancaria."
+                : "Pago con Mercado Pago. El dinero llega a la cuenta del vendedor."}
           </p>
           <div className="animate-rise-delay mt-8 rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
             <CartCheckoutForm
               slotsByProduct={slotsByProduct}
               googleConnected={googleOn}
+              mercadopagoEnabled={mpOn}
+              transferEnabled={transferOn}
             />
           </div>
         </main>

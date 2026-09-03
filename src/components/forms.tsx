@@ -9,11 +9,11 @@ import {
   type ActionResult,
 } from "@/lib/actions";
 import { CouponField, OrderSummary } from "@/components/coupon-field";
-import { InstallmentBadge } from "@/components/installment-badge";
 import { formatSlotChile } from "@/lib/slots";
 import type { CommunityPlatform } from "@/lib/mock-data";
 import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ProductType } from "@/lib/types";
+import { PaymentMethodPicker } from "@/components/payment-method-picker";
 
 const initial: ActionResult | null = null;
 
@@ -335,6 +335,8 @@ export function CheckoutForm({
   slots,
   googleConnected = false,
   isCommunity = false,
+  mercadopagoEnabled = false,
+  transferEnabled = false,
 }: {
   productId: string;
   productName: string;
@@ -345,12 +347,17 @@ export function CheckoutForm({
   slots: string[];
   googleConnected?: boolean;
   isCommunity?: boolean;
+  mercadopagoEnabled?: boolean;
+  transferEnabled?: boolean;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(checkoutAction, initial);
   const [selectedSlot, setSelectedSlot] = useState(slots[0] ?? "");
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(priceClp);
+  const [paymentMethod, setPaymentMethod] = useState<"mercadopago" | "transfer">(
+    mercadopagoEnabled ? "mercadopago" : "transfer",
+  );
 
   useEffect(() => {
     if (state?.ok && state.redirectTo) {
@@ -385,9 +392,6 @@ export function CheckoutForm({
         <p className="mt-2 text-2xl font-semibold tracking-tight text-[var(--teal-deep)]">
           {priceLabel}
         </p>
-        <div className="mt-2">
-          <InstallmentBadge amountClp={priceClp} />
-        </div>
       </div>
 
       {isCommunity ? (
@@ -479,9 +483,17 @@ export function CheckoutForm({
           className="field"
         />
       </div>
+      <PaymentMethodPicker
+        mercadopago={mercadopagoEnabled}
+        transfer={transferEnabled}
+        value={paymentMethod}
+        onChange={setPaymentMethod}
+      />
+
       <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Pago con Mercado Pago (Checkout Pro). En prueba usa el usuario TEST de MP;
-        la comisión de Pagate es $0 — solo aplica la de Mercado Pago.
+        {paymentMethod === "transfer"
+          ? "Después verás los datos para transferir. El vendedor confirma el pago y ahí se libera la entrega."
+          : "Pagas con Mercado Pago. El dinero llega a la cuenta del vendedor."}
       </p>
       {state && !state.ok ? (
         <p className="text-sm text-[var(--coral)]" role="alert">
@@ -490,16 +502,24 @@ export function CheckoutForm({
       ) : null}
       <button
         type="submit"
-        disabled={pending || (isSession && !selectedSlot)}
+        disabled={
+          pending ||
+          (isSession && !selectedSlot) ||
+          (!mercadopagoEnabled && !transferEnabled)
+        }
         className="btn-primary w-full"
       >
         {pending
-          ? "Redirigiendo a Mercado Pago…"
-          : isSession
-            ? `Reservar y pagar ${priceLabel}`
-            : discountClp > 0
-              ? `Pagar con Mercado Pago · ${new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(effectiveTotal)}`
-              : `Pagar con Mercado Pago · ${priceLabel}`}
+          ? paymentMethod === "transfer"
+            ? "Preparando datos de transferencia…"
+            : "Redirigiendo a Mercado Pago…"
+          : paymentMethod === "transfer"
+            ? `Ver datos para transferir · ${priceLabel}`
+            : isSession
+              ? `Reservar y pagar ${priceLabel}`
+              : discountClp > 0
+                ? `Pagar con Mercado Pago · ${new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(effectiveTotal)}`
+                : `Pagar con Mercado Pago · ${priceLabel}`}
       </button>
     </form>
   );

@@ -18,7 +18,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   let result = await getPurchaseByToken(token);
 
   // En Vercel el store en /tmp no es compartido: si MP ya aprobó, sincronizamos aquí.
-  if (!result || result.purchase.status !== "paid") {
+  const skipMpSync = result?.purchase.paymentMethod === "transfer";
+  if (!skipMpSync && (!result || result.purchase.status !== "paid")) {
     const synced = await syncPurchaseFromMercadoPago(token);
     if (synced) {
       result = await getPurchaseByToken(token);
@@ -42,11 +43,22 @@ export default async function DownloadPage({ params, searchParams }: Props) {
         <div className="max-w-md rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-8 text-center">
           <p className="font-display text-2xl">Pago pendiente</p>
           <p className="mt-3 text-sm text-[var(--ink-muted)]">
-            Esta compra aún no está confirmada por Mercado Pago.
+            {purchase.paymentMethod === "transfer"
+              ? "Esta compra se paga por transferencia. Transfiere desde tu banco con los datos del vendedor; cuando confirme el pago, aquí se libera la entrega."
+              : "Esta compra aún no está confirmada por Mercado Pago."}
           </p>
-          <Link href={storeHref} className="btn-primary mt-6 inline-flex">
-            Volver a la tienda
-          </Link>
+          {purchase.paymentMethod === "transfer" ? (
+            <Link
+              href={`/checkout/transferencia?token=${purchase.token}`}
+              className="btn-primary mt-6 inline-flex"
+            >
+              Ver datos para transferir
+            </Link>
+          ) : (
+            <Link href={storeHref} className="btn-primary mt-6 inline-flex">
+              Volver a la tienda
+            </Link>
+          )}
         </div>
       </div>
     );

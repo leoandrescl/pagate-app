@@ -39,7 +39,7 @@ export default async function StorePage({ params }: Props) {
         <StoreProductList products={products} />
 
         <p className="mt-10 text-center text-xs text-[var(--ink-muted)]">
-          Powered by Pagate · cobro con Webpay, transferencia o Mercado Pago (demo)
+          Powered by Pagate · cobro con Mercado Pago o transferencia
         </p>
       </main>
     </div>

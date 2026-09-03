@@ -73,7 +73,8 @@ create table if not exists public.purchases (
   meet_url text,
   google_event_id text,
   mp_preference_id text,
-  mp_payment_id text
+  mp_payment_id text,
+  payment_method text not null default 'mercadopago'
 );
 
 create index if not exists purchases_store_id_idx on public.purchases (store_id);
@@ -89,6 +90,20 @@ create table if not exists public.google_calendar_tokens (
   email text,
   updated_at timestamptz not null default now()
 );
+
+create table if not exists public.mercadopago_tokens (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  access_token text not null,
+  refresh_token text,
+  public_key text,
+  mp_user_id text,
+  live_mode boolean,
+  expires_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists mercadopago_tokens_mp_user_id_idx
+  on public.mercadopago_tokens (mp_user_id);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -197,6 +212,14 @@ create policy "gcal tokens own"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+alter table public.mercadopago_tokens enable row level security;
+drop policy if exists "mp tokens own" on public.mercadopago_tokens;
+create policy "mp tokens own"
+  on public.mercadopago_tokens for all
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- Idempotent upgrades for existing projects (must run before seed inserts)
 alter table public.stores add column if not exists onboarding_step text not null default 'handle';
 alter table public.stores add column if not exists intended_product_types text[] not null default '{}';
@@ -278,3 +301,5 @@ set
   download_expiry_days = 7,
   download_max_count = 5
 where id = '11111111-1111-4111-8111-111111111111';
+
+alter table public.purchases add column if not exists payment_method text not null default 'mercadopago';

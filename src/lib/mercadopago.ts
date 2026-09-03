@@ -1,5 +1,10 @@
-import type { Product } from "./types";
-import { getAppBaseUrl } from "./urls";
+import type { MercadoPagoTokenStore, Product, StoreBundle } from "./types";
+import { getAppBaseUrl, getStudioUrl } from "./urls";
+import {
+  readMercadoPagoTokensByMpUserId,
+  readMercadoPagoTokensForUser,
+  writeMercadoPagoTokensForUser,
+} from "./store";
 
 export { getAppBaseUrl };
 
@@ -7,12 +12,175 @@ export function isMercadoPagoConfigured(): boolean {
   return Boolean(process.env.MP_ACCESS_TOKEN?.trim());
 }
 
-function getAccessToken(): string {
-  const token = process.env.MP_ACCESS_TOKEN?.trim();
-  if (!token) {
-    throw new Error("Falta MP_ACCESS_TOKEN en el entorno");
+export function isMercadoPagoOAuthConfigured(): boolean {
+  return Boolean(
+    process.env.MP_CLIENT_ID?.trim() && process.env.MP_CLIENT_SECRET?.trim(),
+  );
+}
+
+function platformAccessToken(): string | null {
+  return process.env.MP_ACCESS_TOKEN?.trim() || null;
+}
+
+export function getMpOAuthRedirectUri(): string {
+  if (process.env.MP_OAUTH_REDIRECT_URI?.trim()) {
+    return process.env.MP_OAUTH_REDIRECT_URI.trim();
   }
-  return token;
+  return `${getStudioUrl()}/api/mercadopago/callback`;
+}
+
+export function getMercadoPagoAuthUrl(state: string): string {
+  if (!isMercadoPagoOAuthConfigured()) {
+    throw new Error("Faltan MP_CLIENT_ID y MP_CLIENT_SECRET");
+  }
+  const params = new URLSearchParams({
+    client_id: process.env.MP_CLIENT_ID!,
+    response_type: "code",
+    platform_id: "mp",
+    state,
+    redirect_uri: getMpOAuthRedirectUri(),
+  });
+  return `https://auth.mercadopago.com/authorization?${params.toString()}`;
+}
+
+async function refreshSellerToken(
+  userId: string,
+  tokens: MercadoPagoTokenStore,
+): Promise<string> {
+  if (!tokens.refresh_token || !isMercadoPagoOAuthConfigured()) {
+    return tokens.access_token;
+  }
+  const expired =
+    tokens.expires_at && new Date(tokens.expires_at).getTime() < Date.now() + 60_000;
+  if (!expired) return tokens.access_token;
+
+  const res = await fetch("https://api.mercadopago.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.MP_CLIENT_ID,
+      client_secret: process.env.MP_CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: tokens.refresh_token,
+    }),
+  });
+  const data = (await res.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    public_key?: string;
+    user_id?: number | string;
+    live_mode?: boolean;
+    expires_in?: number;
+    message?: string;
+  };
+  if (!res.ok || !data.access_token) {
+    throw new Error(data.message || "No se pudo renovar el token de Mercado Pago");
+  }
+  const next: MercadoPagoTokenStore = {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token ?? tokens.refresh_token,
+    public_key: data.public_key ?? tokens.public_key,
+    mp_user_id: data.user_id != null ? String(data.user_id) : tokens.mp_user_id,
+    live_mode: data.live_mode ?? tokens.live_mode,
+    expires_at: data.expires_in
+      ? new Date(Date.now() + data.expires_in * 1000).toISOString()
+      : tokens.expires_at,
+  };
+  await writeMercadoPagoTokensForUser(userId, next);
+  return next.access_token;
+}
+
+export async function exchangeMercadoPagoCode(
+  code: string,
+): Promise<MercadoPagoTokenStore> {
+  if (!isMercadoPagoOAuthConfigured()) {
+    throw new Error("OAuth de Mercado Pago no está configurado");
+  }
+  const res = await fetch("https://api.mercadopago.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.MP_CLIENT_ID,
+      client_secret: process.env.MP_CLIENT_SECRET,
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: getMpOAuthRedirectUri(),
+      test_token: process.env.MP_TEST_MODE === "1",
+    }),
+  });
+  const data = (await res.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    public_key?: string;
+    user_id?: number | string;
+    live_mode?: boolean;
+    expires_in?: number;
+    message?: string;
+    error?: string;
+  };
+  if (!res.ok || !data.access_token) {
+    throw new Error(
+      data.message || data.error || "No se pudo conectar Mercado Pago",
+    );
+  }
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    public_key: data.public_key,
+    mp_user_id: data.user_id != null ? String(data.user_id) : undefined,
+    live_mode: data.live_mode,
+    expires_at: data.expires_in
+      ? new Date(Date.now() + data.expires_in * 1000).toISOString()
+      : null,
+  };
+}
+
+export async function isMercadoPagoConnected(userId: string | null): Promise<boolean> {
+  if (!userId) return false;
+  const tokens = await readMercadoPagoTokensForUser(userId);
+  return Boolean(tokens?.access_token);
+}
+
+/** Token del vendedor (OAuth). Demo Camila usa el token de Pagate. */
+export async function resolveCheckoutAccessToken(
+  store: StoreBundle,
+): Promise<string | null> {
+  if (!store.ownerId) {
+    return platformAccessToken();
+  }
+  const tokens = await readMercadoPagoTokensForUser(store.ownerId);
+  if (!tokens?.access_token) return null;
+  try {
+    return await refreshSellerToken(store.ownerId, tokens);
+  } catch {
+    return tokens.access_token;
+  }
+}
+
+export async function resolveAccessTokenForPurchase(
+  ownerId: string | null,
+): Promise<string | null> {
+  if (!ownerId) return platformAccessToken();
+  const tokens = await readMercadoPagoTokensForUser(ownerId);
+  if (!tokens?.access_token) return platformAccessToken();
+  try {
+    return await refreshSellerToken(ownerId, tokens);
+  } catch {
+    return tokens.access_token;
+  }
+}
+
+export async function resolveAccessTokenForMpUser(
+  mpUserId: string | null,
+): Promise<string | null> {
+  if (!mpUserId) return platformAccessToken();
+  const found = await readMercadoPagoTokensByMpUserId(mpUserId);
+  if (!found) return platformAccessToken();
+  try {
+    return await refreshSellerToken(found.userId, found.tokens);
+  } catch {
+    return found.tokens.access_token;
+  }
 }
 
 function marketplaceFee(): number {
@@ -36,9 +204,12 @@ export async function createCheckoutPreference(input: {
   buyerEmail: string;
   slotStart?: string;
   extraMetadata?: Record<string, string>;
+  accessToken: string;
+  applyMarketplaceFee?: boolean;
 }): Promise<{ id: string; initPoint: string }> {
   const base = getAppBaseUrl();
-  const fee = marketplaceFee();
+  const fee = input.applyMarketplaceFee ? marketplaceFee() : 0;
+  const token = input.accessToken;
 
   const lineItems: CheckoutPreferenceItem[] =
     input.items && input.items.length > 0
@@ -93,10 +264,15 @@ export async function createCheckoutPreference(input: {
       failure: `${base}/api/mercadopago/return?result=failure`,
       pending: `${base}/api/mercadopago/return?result=pending`,
     },
-    auto_return: "approved",
     notification_url: `${base}/api/webhooks/mercadopago`,
     statement_descriptor: "PAGATE",
   };
+
+  // auto_return exige HTTPS público; en localhost MP responde
+  // "back_url.success must be defined".
+  if (/^https:\/\//i.test(base) && !/localhost|127\.0\.0\.1/i.test(base)) {
+    body.auto_return = "approved";
+  }
 
   if (fee > 0) {
     body.marketplace_fee = fee;
@@ -105,7 +281,7 @@ export async function createCheckoutPreference(input: {
   const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getAccessToken()}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -136,7 +312,6 @@ export async function createCheckoutPreference(input: {
   // APP_USR de prueba → init_point (www). sandbox.mercadopago.* suele
   // dar ERR_TOO_MANY_REDIRECTS. Solo forzar sandbox con MP_FORCE_SANDBOX=1
   // o tokens legacy TEST-.
-  const token = getAccessToken();
   const preferSandbox =
     process.env.MP_FORCE_SANDBOX === "1" || token.startsWith("TEST-");
   const initPoint = preferSandbox
@@ -157,11 +332,18 @@ export type MpPayment = {
   metadata?: Record<string, string | number | boolean | null | undefined>;
 };
 
-export async function getPayment(paymentId: string): Promise<MpPayment> {
+export async function getPayment(
+  paymentId: string,
+  accessToken?: string | null,
+): Promise<MpPayment> {
+  const token = accessToken || platformAccessToken();
+  if (!token) {
+    throw new Error("Falta token de Mercado Pago");
+  }
   const res = await fetch(
     `https://api.mercadopago.com/v1/payments/${paymentId}`,
     {
-      headers: { Authorization: `Bearer ${getAccessToken()}` },
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     },
   );
@@ -177,7 +359,12 @@ export async function getPayment(paymentId: string): Promise<MpPayment> {
 /** Busca un pago aprobado por external_reference (token Pagate). */
 export async function findApprovedPaymentByExternalReference(
   externalReference: string,
+  accessToken?: string | null,
 ): Promise<MpPayment | null> {
+  const token = accessToken || platformAccessToken();
+  if (!token) {
+    throw new Error("Falta token de Mercado Pago");
+  }
   const url = new URL("https://api.mercadopago.com/v1/payments/search");
   url.searchParams.set("external_reference", externalReference);
   url.searchParams.set("sort", "date_created");
@@ -187,7 +374,7 @@ export async function findApprovedPaymentByExternalReference(
   url.searchParams.set("end_date", "NOW");
 
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${getAccessToken()}` },
+    headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
   const data = (await res.json()) as {

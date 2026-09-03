@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { displayNameFromUser, requireUser } from "@/lib/auth";
 import { onboardingPath } from "@/lib/onboarding";
+import { isMercadoPagoConnected } from "@/lib/mercadopago";
 import {
   claimOnboardingUsername,
   completeOnboarding,
@@ -73,9 +74,9 @@ export async function savePaymentsAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const user = await requireUser();
+  const connected = await isMercadoPagoConnected(user.id);
   const payment: PaymentSettings = {
-    mercadoPago: "later",
-    goCuotas: String(formData.get("goCuotas") ?? "") === "1",
+    mercadoPago: connected ? "connected" : "later",
     transferEnabled: String(formData.get("transferEnabled") ?? "") === "1",
     transferHolder: String(formData.get("transferHolder") ?? "").trim() || undefined,
     transferRut: String(formData.get("transferRut") ?? "").trim() || undefined,
@@ -83,6 +84,14 @@ export async function savePaymentsAction(
     transferBank: String(formData.get("transferBank") ?? "").trim() || undefined,
     transferAccount: String(formData.get("transferAccount") ?? "").trim() || undefined,
   };
+  if (payment.transferEnabled) {
+    if (!payment.transferHolder || !payment.transferBank || !payment.transferAccount) {
+      return {
+        ok: false,
+        error: "Para transferencia indica titular, banco y número de cuenta.",
+      };
+    }
+  }
   try {
     const store = await patchOnboardingStore(user.id, "pagos", {
       payment_settings: payment,

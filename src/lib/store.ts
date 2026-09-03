@@ -7,7 +7,9 @@ import type {
   DownloadPolicy,
   GoogleCalendarConnection,
   GoogleTokenStore,
+  MercadoPagoTokenStore,
   OnboardingStepId,
+  PaymentMethod,
   PaymentSettings,
   Product,
   ProductType,
@@ -94,6 +96,7 @@ type PurchaseRow = {
   google_event_id: string | null;
   mp_preference_id: string | null;
   mp_payment_id: string | null;
+  payment_method: PaymentMethod | null;
 };
 
 export const DEMO_CREATOR: Creator = {
@@ -202,6 +205,7 @@ function purchaseFromRow(row: PurchaseRow): Purchase {
     googleEventId: row.google_event_id ?? undefined,
     mpPreferenceId: row.mp_preference_id ?? undefined,
     mpPaymentId: row.mp_payment_id ?? undefined,
+    paymentMethod: row.payment_method === "transfer" ? "transfer" : "mercadopago",
   };
 }
 
@@ -240,7 +244,6 @@ async function fetchStoreRowById(id: string): Promise<StoreRow | null> {
 
 const DEFAULT_PAYMENT: PaymentSettings = {
   mercadoPago: "later",
-  goCuotas: false,
   transferEnabled: false,
 };
 
@@ -485,6 +488,7 @@ export async function createPurchase(input: {
   buyerEmail: string;
   slotStart?: string;
   status?: Purchase["status"];
+  paymentMethod?: PaymentMethod;
 }): Promise<Purchase> {
   if (!isSupabaseAdminConfigured()) {
     throw new Error("Supabase no está configurado.");
@@ -526,6 +530,7 @@ export async function createPurchase(input: {
     slotStart,
     slotEnd,
     meetUrl: undefined,
+    paymentMethod: input.paymentMethod ?? "mercadopago",
   };
 
   const { error } = await db().from("purchases").insert(purchaseToRow(purchase, product.creatorId));
@@ -552,6 +557,7 @@ function purchaseToRow(purchase: Purchase, storeId: string) {
     google_event_id: purchase.googleEventId ?? null,
     mp_preference_id: purchase.mpPreferenceId ?? null,
     mp_payment_id: purchase.mpPaymentId ?? null,
+    payment_method: purchase.paymentMethod ?? "mercadopago",
   };
 }
 
@@ -1026,6 +1032,117 @@ export async function clearGoogleTokensForUser(userId: string): Promise<void> {
     .delete()
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
+}
+
+export async function readMercadoPagoTokensForUser(
+  userId: string,
+): Promise<MercadoPagoTokenStore | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const { data, error } = await db()
+    .from("mercadopago_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return {
+    access_token: data.access_token as string,
+    refresh_token: (data.refresh_token as string | null) ?? undefined,
+    public_key: (data.public_key as string | null) ?? undefined,
+    mp_user_id: (data.mp_user_id as string | null) ?? undefined,
+    live_mode: (data.live_mode as boolean | null) ?? undefined,
+    expires_at: (data.expires_at as string | null) ?? null,
+  };
+}
+
+export async function readMercadoPagoTokensByMpUserId(
+  mpUserId: string,
+): Promise<{ userId: string; tokens: MercadoPagoTokenStore } | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const { data, error } = await db()
+    .from("mercadopago_tokens")
+    .select("*")
+    .eq("mp_user_id", mpUserId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return {
+    userId: data.user_id as string,
+    tokens: {
+      access_token: data.access_token as string,
+      refresh_token: (data.refresh_token as string | null) ?? undefined,
+      public_key: (data.public_key as string | null) ?? undefined,
+      mp_user_id: (data.mp_user_id as string | null) ?? undefined,
+      live_mode: (data.live_mode as boolean | null) ?? undefined,
+      expires_at: (data.expires_at as string | null) ?? null,
+    },
+  };
+}
+
+export async function writeMercadoPagoTokensForUser(
+  userId: string,
+  tokens: MercadoPagoTokenStore,
+): Promise<void> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const { error } = await db().from("mercadopago_tokens").upsert({
+    user_id: userId,
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token ?? null,
+    public_key: tokens.public_key ?? null,
+    mp_user_id: tokens.mp_user_id ?? null,
+    live_mode: tokens.live_mode ?? null,
+    expires_at: tokens.expires_at ?? null,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
+  const store = await getMyStore(userId);
+  if (store) {
+    const { error: storeError } = await db()
+      .from("stores")
+      .update({
+        payment_settings: {
+          ...store.paymentSettings,
+          mercadoPago: "connected",
+        },
+      })
+      .eq("id", store.creator.id);
+    if (storeError) throw new Error(storeError.message);
+  }
+}
+
+export async function clearMercadoPagoTokensForUser(
+  userId: string,
+): Promise<void> {
+  if (!isSupabaseAdminConfigured()) return;
+  const { error } = await db()
+    .from("mercadopago_tokens")
+    .delete()
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  const store = await getMyStore(userId);
+  if (store) {
+    const { error: storeError } = await db()
+      .from("stores")
+      .update({
+        payment_settings: {
+          ...store.paymentSettings,
+          mercadoPago: "later",
+        },
+      })
+      .eq("id", store.creator.id);
+    if (storeError) throw new Error(storeError.message);
+  }
+}
+
+export function isTransferReady(settings: PaymentSettings): boolean {
+  return Boolean(
+    settings.transferEnabled &&
+      settings.transferHolder?.trim() &&
+      settings.transferBank?.trim() &&
+      settings.transferAccount?.trim(),
+  );
 }
 
 export { formatClp } from "./format-clp";

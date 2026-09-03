@@ -1,6 +1,5 @@
 import { randomBytes } from "crypto";
 import {
-  getProduct,
   getPurchaseByToken,
   getStoreById,
   updatePurchaseCalendar,
@@ -13,7 +12,7 @@ import {
 } from "@/lib/google-calendar";
 import {
   findApprovedPaymentByExternalReference,
-  isMercadoPagoConfigured,
+  resolveAccessTokenForPurchase,
   type MpPayment,
 } from "@/lib/mercadopago";
 import type { Purchase } from "@/lib/types";
@@ -30,9 +29,18 @@ function metaString(
 export async function syncPurchaseFromMercadoPago(
   token: string,
 ): Promise<{ purchase: Purchase; alreadyPaid: boolean } | null> {
-  if (!isMercadoPagoConfigured() || !token) return null;
+  if (!token) return null;
   try {
-    const payment = await findApprovedPaymentByExternalReference(token);
+    const existing = await getPurchaseByToken(token);
+    const store = existing
+      ? await getStoreById(existing.product.creatorId)
+      : null;
+    const accessToken = await resolveAccessTokenForPurchase(store?.ownerId ?? null);
+    if (!accessToken) return null;
+    const payment = await findApprovedPaymentByExternalReference(
+      token,
+      accessToken,
+    );
     if (!payment || payment.status !== "approved") return null;
     return fulfillApprovedPayment(payment);
   } catch (err) {
@@ -103,11 +111,28 @@ export async function fulfillApprovedPayment(
     mpPaymentId: String(payment.id),
   });
 
-  const product = await getProduct(productId);
-  const store = product ? await getStoreById(product.creatorId) : null;
+  await fulfillSessionAfterPaid(purchase.token, `Pago MP: ${payment.id}`);
+
+  const fresh = await getPurchaseByToken(token);
+  return {
+    purchase: fresh?.purchase ?? purchase,
+    alreadyPaid: false,
+  };
+}
+
+/** Crea Meet / evento de calendario cuando una sesión queda pagada (MP o transferencia). */
+export async function fulfillSessionAfterPaid(
+  token: string,
+  paymentNote = "Pago confirmado",
+): Promise<void> {
+  const existing = await getPurchaseByToken(token);
+  if (!existing || existing.purchase.status !== "paid") return;
+  const { purchase, product } = existing;
+  if (product.type !== "session") return;
+
+  const store = await getStoreById(product.creatorId);
   const ownerId = store?.ownerId;
   if (
-    product?.type === "session" &&
     purchase.slotStart &&
     purchase.slotEnd &&
     !purchase.googleEventId &&
@@ -117,7 +142,7 @@ export async function fulfillApprovedPayment(
     try {
       const event = await createCalendarEventWithMeet(ownerId, {
         summary: `Pagate · sesión con ${purchase.buyerName}`,
-        description: `Reserva Pagate.\nCliente: ${purchase.buyerName} <${purchase.buyerEmail}>\nPago MP: ${payment.id}`,
+        description: `Reserva Pagate.\nCliente: ${purchase.buyerName} <${purchase.buyerEmail}>\n${paymentNote}`,
         startIso: purchase.slotStart,
         endIso: purchase.slotEnd,
         attendeeEmail: purchase.buyerEmail,
@@ -128,17 +153,11 @@ export async function fulfillApprovedPayment(
         googleEventId: event.eventId,
       });
     } catch (err) {
-      console.error("[mp] calendar after pay failed", err);
+      console.error("[pay] calendar after pay failed", err);
     }
-  } else if (product?.type === "session" && !purchase.meetUrl) {
+  } else if (!purchase.meetUrl) {
     await updatePurchaseCalendar(purchase.token, {
       meetUrl: `https://meet.google.com/pagate-demo-${randomBytes(3).toString("hex")}`,
     });
   }
-
-  const fresh = await getPurchaseByToken(token);
-  return {
-    purchase: fresh?.purchase ?? purchase,
-    alreadyPaid: false,
-  };
 }

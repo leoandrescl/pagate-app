@@ -2,7 +2,16 @@ import { type NextRequest, NextResponse } from "next/server";
 import { copyCookies, updateSession } from "@/lib/supabase/proxy";
 import { isLocalDevHost, isMarketingHost, isStudioHost } from "@/lib/urls";
 
-const STUDIO_PATHS = ["/login", "/onboarding", "/dashboard", "/crear", "/auth"];
+const STUDIO_PATHS = [
+  "/login",
+  "/onboarding",
+  "/dashboard",
+  "/crear",
+  "/auth",
+  "/api/mercadopago/connect",
+  "/api/mercadopago/callback",
+  "/api/mercadopago/disconnect",
+];
 const MARKETING_PATHS = ["/para", "/vs", "/u", "/checkout", "/d"];
 
 function pathStartsWith(pathname: string, prefixes: string[]) {

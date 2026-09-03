@@ -48,8 +48,7 @@ export type OnboardingStepId =
   | "done";
 
 export type PaymentSettings = {
-  mercadoPago: "later" | "skipped";
-  goCuotas: boolean;
+  mercadoPago: "later" | "connected" | "skipped";
   transferEnabled: boolean;
   transferHolder?: string;
   transferRut?: string;
@@ -57,6 +56,8 @@ export type PaymentSettings = {
   transferBank?: string;
   transferAccount?: string;
 };
+
+export type PaymentMethod = "mercadopago" | "transfer";
 
 export type StoreSocialLinks = {
   instagram?: string;
@@ -89,6 +90,7 @@ export type Purchase = {
   googleEventId?: string;
   mpPreferenceId?: string;
   mpPaymentId?: string;
+  paymentMethod?: PaymentMethod;
 };
 
 export type DemoStore = {
@@ -116,4 +118,13 @@ export type GoogleTokenStore = {
   token_type?: string;
   expiry_date?: number | null;
   email?: string;
+};
+
+export type MercadoPagoTokenStore = {
+  access_token: string;
+  refresh_token?: string;
+  public_key?: string;
+  mp_user_id?: string;
+  live_mode?: boolean;
+  expires_at?: string | null;
 };

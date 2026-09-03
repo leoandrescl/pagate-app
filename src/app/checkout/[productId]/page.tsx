@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { CommunityCheckoutLoader } from "@/components/community-checkout-loader";
 import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
 import { CheckoutForm } from "@/components/forms";
-import { formatClp, getStoreForProduct } from "@/lib/store";
+import { formatClp, getStoreForProduct, isTransferReady } from "@/lib/store";
 import {
   fetchBusyIntervals,
   isGoogleConnected,
 } from "@/lib/google-calendar";
+import { isMercadoPagoConnected } from "@/lib/mercadopago";
 import { bookedSlotStarts, generateAvailableSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,10 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
   let busy: { start: string; end: string }[] = [];
   const googleOn = await isGoogleConnected(store.ownerId);
+  const mpOn = store.ownerId
+    ? await isMercadoPagoConnected(store.ownerId)
+    : Boolean(process.env.MP_ACCESS_TOKEN?.trim());
+  const transferOn = isTransferReady(store.paymentSettings);
   if (product.type === "session" && googleOn) {
     const timeMin = new Date();
     const timeMax = new Date();
@@ -92,7 +97,11 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             {product.type === "session" ? "Agendar y pagar" : "Checkout"}
           </h1>
           <p className="animate-rise mt-2 text-sm text-[var(--ink-muted)]">
-            Pago con Mercado Pago (Checkout Pro).
+            {mpOn && transferOn
+              ? "Paga con Mercado Pago o por transferencia a la cuenta del vendedor."
+              : transferOn
+                ? "Esta tienda cobra por transferencia bancaria."
+                : "Pago con Mercado Pago. El dinero llega a la cuenta del vendedor."}
             {product.type === "session" && googleOn
               ? " Horarios libres según Google Calendar."
               : null}
@@ -107,6 +116,8 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
               durationMinutes={product.durationMinutes}
               slots={slots}
               googleConnected={googleOn}
+              mercadopagoEnabled={mpOn}
+              transferEnabled={transferOn}
             />
           </div>
         </main>

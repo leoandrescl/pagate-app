@@ -19,6 +19,11 @@ import {
   isGoogleConnected,
   listUpcomingGoogleEvents,
 } from "@/lib/google-calendar";
+import {
+  isMercadoPagoConnected,
+  isMercadoPagoOAuthConfigured,
+} from "@/lib/mercadopago";
+import { confirmTransferPaidAction } from "@/lib/actions";
 import { formatSlotRange } from "@/lib/slots";
 import { storefrontHref, getAppBaseUrl } from "@/lib/urls";
 import { redirect } from "next/navigation";
@@ -26,26 +31,32 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ google?: string }>;
+  searchParams: Promise<{ google?: string; mp?: string }>;
 };
 
 export default async function DashboardPage({ searchParams }: Props) {
-  const { google } = await searchParams;
+  const { google, mp } = await searchParams;
   const user = await requireUser();
   const mine = await getMyStore(user.id);
   if (!mine) redirect("/onboarding");
 
-  const [sessions, googleOn, googleReady, googleEvents, googleEmail] =
+  const [sessions, googleOn, googleReady, googleEvents, googleEmail, mpOn] =
     await Promise.all([
       listUpcomingSessions(mine.creator.id),
       isGoogleConnected(user.id),
       Promise.resolve(isGoogleConfigured()),
       listUpcomingGoogleEvents(user.id, 7),
       getGoogleAccountEmail(user.id),
+      isMercadoPagoConnected(user.id),
     ]);
+  const mpReady = isMercadoPagoOAuthConfigured();
   const creator = mine.creator;
   const products = mine.products;
   const store = mine;
+  const pendingTransfers = store.purchases.filter(
+    (purchase) =>
+      purchase.status === "pending" && purchase.paymentMethod === "transfer",
+  );
   const storeUrl = storefrontHref(creator.username);
   const { availability } = creator;
   const publicHost = (
@@ -186,7 +197,45 @@ export default async function DashboardPage({ searchParams }: Props) {
           </div>
 
           <div className="space-y-8">
-            <MercadoPagoCard />
+            <MercadoPagoCard
+              configured={mpReady}
+              connected={mpOn}
+              status={mp}
+            />
+
+            {pendingTransfers.length > 0 ? (
+              <section className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+                <h2 className="font-display text-2xl">Transferencias pendientes</h2>
+                <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                  El comprador transfiere desde su banco. Cuando veas el abono,
+                  marca la compra como pagada para liberar la entrega.
+                </p>
+                <div className="mt-4 space-y-3">
+                  {pendingTransfers.map((purchase) => {
+                    const product = products.find((p) => p.id === purchase.productId);
+                    return (
+                      <div
+                        key={purchase.id}
+                        className="rounded-2xl border border-[var(--line)] bg-[var(--fog)] p-4"
+                      >
+                        <p className="font-semibold text-[var(--ink)]">
+                          {product?.name ?? "Producto"} · {formatClp(purchase.amountClp)}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                          {purchase.buyerName} · {purchase.buyerEmail}
+                        </p>
+                        <form action={confirmTransferPaidAction} className="mt-3">
+                          <input type="hidden" name="token" value={purchase.token} />
+                          <button type="submit" className="btn-primary text-sm">
+                            Marcar como pagada
+                          </button>
+                        </form>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
             <GoogleCalendarCard
               configured={googleReady}

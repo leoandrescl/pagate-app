@@ -10,12 +10,7 @@ const password = get("SUPABASE_DB_PASSWORD");
 const ref = "jyjqscwixcejfwiueiqg";
 const sql = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
-const hosts = [];
-for (const cluster of ["aws-0", "aws-1", "aws-2", "aws-3"]) {
-  for (const region of ["us-west-2", "us-west-1", "us-east-1", "us-east-2"]) {
-    hosts.push(`${cluster}-${region}.pooler.supabase.com`);
-  }
-}
+const hosts = ["aws-0-us-west-2.pooler.supabase.com"];
 
 let client;
 let used = "";

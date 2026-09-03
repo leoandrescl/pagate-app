@@ -4,16 +4,23 @@ import { useState, useEffect } from "react";
 import { formatClp } from "@/lib/format-clp";
 import { useCart } from "@/lib/cart-context";
 import { CouponField, OrderSummary } from "@/components/coupon-field";
-import { InstallmentBadge } from "@/components/installment-badge";
 import { formatSlotChile } from "@/lib/slots";
 import { checkoutCartAction } from "@/lib/actions";
+import { PaymentMethodPicker } from "@/components/payment-method-picker";
 
 type Props = {
   slotsByProduct: Record<string, string[]>;
   googleConnected: boolean;
+  mercadopagoEnabled?: boolean;
+  transferEnabled?: boolean;
 };
 
-export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
+export function CartCheckoutForm({
+  slotsByProduct,
+  googleConnected,
+  mercadopagoEnabled = false,
+  transferEnabled = false,
+}: Props) {
   const {
     username,
     items,
@@ -28,6 +35,9 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"mercadopago" | "transfer">(
+    mercadopagoEnabled ? "mercadopago" : "transfer",
+  );
 
   const sessionItems = items.filter((i) => i.type === "session");
   const effectiveTotal = totalClp || subtotalClp;
@@ -83,18 +93,19 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
         sessionSlots,
         buyerName,
         buyerEmail,
+        paymentMethod,
       });
       if (!result.ok) {
         setError(result.error);
         setPending(false);
         return;
       }
-      if (result.redirectTo?.startsWith("http")) {
+      if (result.redirectTo) {
         clearCart();
         window.location.href = result.redirectTo;
         return;
       }
-      setError("No se recibió la URL de Mercado Pago.");
+      setError("No se recibió la URL de pago.");
       setPending(false);
     } catch (err) {
       setError(
@@ -185,8 +196,6 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
         totalClp={effectiveTotal}
       />
 
-      <InstallmentBadge amountClp={effectiveTotal} />
-
       <div>
         <label htmlFor="buyerName" className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]">
           Tu nombre
@@ -217,9 +226,17 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
         />
       </div>
 
+      <PaymentMethodPicker
+        mercadopago={mercadopagoEnabled}
+        transfer={transferEnabled}
+        value={paymentMethod}
+        onChange={setPaymentMethod}
+      />
+
       <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Pago con Mercado Pago (Checkout Pro). En prueba usa el usuario TEST de MP;
-        la comisión de Pagate es $0 — solo aplica la de Mercado Pago.
+        {paymentMethod === "transfer"
+          ? "Después verás los datos para transferir. El vendedor confirma el pago y ahí se libera la entrega."
+          : "Pagas con Mercado Pago. El dinero llega a la cuenta del vendedor."}
       </p>
 
       {error ? (
@@ -228,10 +245,18 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
         </p>
       ) : null}
 
-      <button type="submit" disabled={pending} className="btn-primary w-full">
+      <button
+        type="submit"
+        disabled={pending || (!mercadopagoEnabled && !transferEnabled)}
+        className="btn-primary w-full"
+      >
         {pending
-          ? "Redirigiendo a Mercado Pago…"
-          : `Pagar con Mercado Pago · ${formatClp(effectiveTotal)}`}
+          ? paymentMethod === "transfer"
+            ? "Preparando datos de transferencia…"
+            : "Redirigiendo a Mercado Pago…"
+          : paymentMethod === "transfer"
+            ? `Ver datos para transferir · ${formatClp(effectiveTotal)}`
+            : `Pagar con Mercado Pago · ${formatClp(effectiveTotal)}`}
       </button>
     </form>
   );
