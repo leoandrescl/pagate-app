@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPayment } from "@/lib/mercadopago";
+import { getPayment, resolveAccessTokenForMpUser } from "@/lib/mercadopago";
 import { fulfillApprovedPayment } from "@/lib/fulfill-payment";
 
 export async function GET(request: Request) {
@@ -19,22 +19,30 @@ async function handleWebhook(request: Request) {
       url.searchParams.get("id") ||
       "";
 
-    const topic =
+    let topic =
       url.searchParams.get("type") ||
       url.searchParams.get("topic") ||
       "";
+    let mpUserId: string | null =
+      url.searchParams.get("user_id") ||
+      url.searchParams.get("userId") ||
+      null;
 
     if (request.method === "POST") {
       const body = (await request.json().catch(() => null)) as {
         type?: string;
         action?: string;
+        user_id?: number | string;
         data?: { id?: string };
       } | null;
       if (body?.data?.id) {
         paymentId = String(body.data.id);
       }
-      if (!topic && body?.type) {
-        // payment
+      if (body?.type && !topic) {
+        topic = body.type;
+      }
+      if (body?.user_id) {
+        mpUserId = String(body.user_id);
       }
     }
 
@@ -47,7 +55,8 @@ async function handleWebhook(request: Request) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const payment = await getPayment(paymentId);
+    const accessToken = await resolveAccessTokenForMpUser(mpUserId);
+    const payment = await getPayment(paymentId, accessToken);
     if (payment.status === "approved") {
       await fulfillApprovedPayment(payment);
     }
