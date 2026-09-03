@@ -1,59 +1,74 @@
 # Pagate
 
-Demo de producto **link-in-bio + cobro + entrega de digitales / agendamiento** para creadores (Chile). Pensada para pitch y validación de flujo completo sin pasarelas reales.
+Link-in-bio + cobro + entrega de digitales / agendamiento para creadores en Chile.
 
-**Demo:** [pagate-app.vercel.app](https://pagate-app.vercel.app)
+**Producción:** [pagate.cl](https://pagate.cl) · **Studio:** [studio.pagate.cl](https://studio.pagate.cl)
 
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Persistencia demo en JSON (`data/store.json`)
+- Supabase (Auth con Google + Postgres + RLS)
+- Mercado Pago Checkout Pro
 - Google Calendar OAuth opcional (eventos + Meet + FreeBusy)
 
 ## Requisitos
 
 - Node.js 20+ (LTS)
+- Proyecto Supabase (ver más abajo) para login y tiendas reales
 
 ## Cómo correr
 
 ```bash
 npm install
+cp .env.example .env.local
+# Completa las keys de Supabase y, si quieres, Google Calendar / Mercado Pago
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000). La demo funciona sin `.env`.
+Abre [http://localhost:3000](http://localhost:3000). La landing y la demo de Camila (`/u/camila.nutri`) se pueden ver sin Supabase; crear tienda y el panel requieren Auth.
 
-## Recorrido sugerido
+## Recorrido
 
 1. **Landing (`/`)** — propuesta de valor
-2. **Panel (`/dashboard`)** — productos, disponibilidad mock, citas; botón *Reiniciar demo*
-3. **Tienda (`/u/camila.nutri`)** — storefront público tipo link-in-bio
-4. **Checkout (`/checkout/...`)** — sesión con horario o digital con datos de contacto (pago mock)
-5. **Confirmación (`/d/[token]`)** — entrega / Meet mock
+2. **Login (`/login` o studio.pagate.cl)** — Continuar con Google
+3. **Onboarding (`/onboarding`)** — usuario, nombre, primer producto
+4. **Panel (`/dashboard`)** — productos, disponibilidad, citas
+5. **Tienda (`/u/tu-usuario`)** — storefront público
+6. **Checkout (`/checkout/...`)** — Mercado Pago
+7. **Confirmación (`/d/[token]`)** — entrega / Meet
 
-## Google Calendar (opcional)
+## Supabase (obligatorio para cuentas reales)
 
-1. Google Cloud Console → proyecto → habilitar **Google Calendar API**
-2. OAuth consent screen (External) → agrega tu email como usuario de prueba
-3. Credenciales → OAuth client **Web application**
-4. Redirect URI: `http://localhost:3000/api/google/callback`
-5. Copia Client ID / Secret a `.env.local` (plantilla: `.env.example`)
-6. `npm run dev` → Panel → **Conectar Google Calendar**
+1. Crea un proyecto en [supabase.com](https://supabase.com)
+2. SQL Editor → pega y ejecuta [`supabase/schema.sql`](./supabase/schema.sql) (tablas, RLS y seed de Camila)
+3. Authentication → Providers → Google: Client ID y Secret del mismo proyecto de Google Cloud (scopes de login: email, profile, openid)
+4. Authentication → URL configuration:
+   - Site URL: `http://localhost:3000` (local) / `https://studio.pagate.cl` (prod)
+   - Redirect URLs: `http://localhost:3000/auth/callback`, `https://studio.pagate.cl/auth/callback`, `https://pagate.cl/auth/callback`
+5. Copia URL, anon key y service role a `.env.local` y a Vercel (Production)
+6. Google Cloud → OAuth client web → origins: `http://localhost:3000`, `https://pagate.cl`, `https://studio.pagate.cl`. Redirect de Supabase: `https://<ref>.supabase.co/auth/v1/callback`
 
-Con OAuth activo, al agendar se crea el evento, Meet e invitación; FreeBusy excluye horarios ocupados.
+## Dominio studio.pagate.cl
 
-## Qué está mockeado (a propósito)
+Mismo proyecto Vercel. En el dashboard de Vercel agrega el dominio `studio.pagate.cl` y en el DNS:
 
-- Pagos (Flow / Webpay)
-- Email transaccional (Resend), salvo invitación Calendar si Google está conectado
-- Auth real de creadores
-- Base de datos (JSON local)
-- Boleta SII
+```
+CNAME studio → cname.vercel-dns.com
+```
+
+Variables de producción:
+
+- `NEXT_PUBLIC_APP_URL=https://pagate.cl`
+- `NEXT_PUBLIC_STUDIO_URL=https://studio.pagate.cl`
+
+## Google Calendar (opcional, en el panel)
+
+Es un OAuth distinto al login. No se pide calendario al entrar con Gmail.
+
+1. Google Cloud → habilitar Google Calendar API
+2. Redirect URI: `http://localhost:3000/api/google/callback` y `https://studio.pagate.cl/api/google/callback`
+3. Panel → **Conectar Google Calendar**
 
 ## Variables de entorno
 
 Ver [`.env.example`](./.env.example).
-
-## Próximos pasos (producto real)
-
-Supabase (Auth + Postgres), pasarela en sandbox, storage privado + URLs firmadas, Resend, agenda y facturación.

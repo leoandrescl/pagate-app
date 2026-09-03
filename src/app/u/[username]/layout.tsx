@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCreatorByUsername } from "@/lib/demo-store";
+import { getCreatorByUsername } from "@/lib/store";
 import { StoreProviders } from "@/components/store-providers";
 
 export const dynamic = "force-dynamic";

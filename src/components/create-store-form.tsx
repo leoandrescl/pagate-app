@@ -7,7 +7,11 @@ import { seedClientStoreSettings } from "@/lib/store-settings-context";
 
 const initial: ActionResult | null = null;
 
-export function CreateStoreForm() {
+export function CreateStoreForm({
+  defaultDisplayName = "",
+}: {
+  defaultDisplayName?: string;
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(createStoreAction, initial);
   const [username, setUsername] = useState("");
@@ -86,6 +90,7 @@ export function CreateStoreForm() {
           name="displayName"
           required
           placeholder="Ana Rojas"
+          defaultValue={defaultDisplayName}
           className="field"
         />
       </div>
@@ -248,11 +253,6 @@ export function CreateStoreForm() {
           {state.error}
         </p>
       ) : null}
-
-      <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Demo sin cuenta real: al crear, reemplazas la tienda de ejemplo en este
-        entorno. Puedes volver a Camila con “Reiniciar demo” en el panel.
-      </p>
 
       <button type="submit" disabled={pending} className="btn-primary w-full">
         {pending ? "Creando tienda…" : "Crear mi tienda"}

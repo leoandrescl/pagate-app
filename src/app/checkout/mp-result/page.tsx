@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCreator } from "@/lib/demo-store";
+import { getPurchaseByToken, getStoreById } from "@/lib/store";
 
 type Props = {
   searchParams: Promise<{ status?: string; token?: string }>;
@@ -7,7 +7,11 @@ type Props = {
 
 export default async function MpResultPage({ searchParams }: Props) {
   const { status, token } = await searchParams;
-  const creator = await getCreator();
+  const found = token ? await getPurchaseByToken(token) : null;
+  const store = found
+    ? await getStoreById(found.product.creatorId)
+    : null;
+  const storeHref = store ? `/u/${store.creator.username}` : "/";
   const title =
     status === "pending"
       ? "Pago pendiente"
@@ -33,7 +37,7 @@ export default async function MpResultPage({ searchParams }: Props) {
               Ver comprobante
             </Link>
           ) : null}
-          <Link href={`/u/${creator.username}`} className="btn-ghost">
+          <Link href={storeHref} className="btn-ghost">
             Volver a la tienda
           </Link>
         </div>

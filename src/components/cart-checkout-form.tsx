@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { formatClp } from "@/lib/format-clp";
 import { useCart } from "@/lib/cart-context";
 import { CouponField, OrderSummary } from "@/components/coupon-field";
 import { InstallmentBadge } from "@/components/installment-badge";
 import { formatSlotChile } from "@/lib/slots";
+import { checkoutCartAction } from "@/lib/actions";
 
 type Props = {
   slotsByProduct: Record<string, string[]>;
@@ -14,7 +14,6 @@ type Props = {
 };
 
 export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
-  const router = useRouter();
   const {
     username,
     items,
@@ -72,12 +71,37 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
     }
 
     setPending(true);
-    // MOCK: simula pago multi-producto sin backend
-    await new Promise((r) => setTimeout(r, 1000));
-    clearCart();
-    router.push(
-      `/checkout/carrito/confirmado?email=${encodeURIComponent(buyerEmail)}&name=${encodeURIComponent(buyerName)}&total=${effectiveTotal}`,
-    );
+    try {
+      const result = await checkoutCartAction({
+        items: items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          priceClp: item.priceClp,
+          quantity: item.quantity,
+          type: item.type,
+        })),
+        sessionSlots,
+        buyerName,
+        buyerEmail,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        setPending(false);
+        return;
+      }
+      if (result.redirectTo?.startsWith("http")) {
+        clearCart();
+        window.location.href = result.redirectTo;
+        return;
+      }
+      setError("No se recibió la URL de Mercado Pago.");
+      setPending(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo iniciar el pago.",
+      );
+      setPending(false);
+    }
   }
 
   return (
@@ -194,7 +218,8 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
       </div>
 
       <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Demo: el pago simula Webpay, transferencia o Mercado Pago. No se cobra nada real.
+        Pago con Mercado Pago (Checkout Pro). En prueba usa el usuario TEST de MP;
+        la comisión de Pagate es $0 — solo aplica la de Mercado Pago.
       </p>
 
       {error ? (
@@ -204,7 +229,9 @@ export function CartCheckoutForm({ slotsByProduct, googleConnected }: Props) {
       ) : null}
 
       <button type="submit" disabled={pending} className="btn-primary w-full">
-        {pending ? "Procesando pago mock…" : `Pagar ${formatClp(effectiveTotal)}`}
+        {pending
+          ? "Redirigiendo a Mercado Pago…"
+          : `Pagar con Mercado Pago · ${formatClp(effectiveTotal)}`}
       </button>
     </form>
   );

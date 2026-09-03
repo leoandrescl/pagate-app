@@ -111,7 +111,7 @@ export function CartPageContent({ username }: { username: string }) {
         <div className="mt-3">
           <InstallmentBadge amountClp={effectiveTotal} />
         </div>
-        <Link href="/checkout/carrito" className="btn-primary mt-6 block w-full text-center">
+        <Link href={`/checkout/carrito?u=${encodeURIComponent(username)}`} className="btn-primary mt-6 block w-full text-center">
           Ir a pagar · {formatClp(effectiveTotal)}
         </Link>
       </div>

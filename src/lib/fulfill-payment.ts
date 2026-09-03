@@ -2,10 +2,11 @@ import { randomBytes } from "crypto";
 import {
   getProduct,
   getPurchaseByToken,
+  getStoreById,
   updatePurchaseCalendar,
   updatePurchasePayment,
   upsertPurchaseFromMetadata,
-} from "@/lib/demo-store";
+} from "@/lib/store";
 import {
   createCalendarEventWithMeet,
   isGoogleConnected,
@@ -103,15 +104,18 @@ export async function fulfillApprovedPayment(
   });
 
   const product = await getProduct(productId);
+  const store = product ? await getStoreById(product.creatorId) : null;
+  const ownerId = store?.ownerId;
   if (
     product?.type === "session" &&
     purchase.slotStart &&
     purchase.slotEnd &&
     !purchase.googleEventId &&
-    (await isGoogleConnected())
+    ownerId &&
+    (await isGoogleConnected(ownerId))
   ) {
     try {
-      const event = await createCalendarEventWithMeet({
+      const event = await createCalendarEventWithMeet(ownerId, {
         summary: `Pagate · sesión con ${purchase.buyerName}`,
         description: `Reserva Pagate.\nCliente: ${purchase.buyerName} <${purchase.buyerEmail}>\nPago MP: ${payment.id}`,
         startIso: purchase.slotStart,

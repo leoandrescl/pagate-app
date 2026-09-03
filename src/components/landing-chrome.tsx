@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { studioHref } from "@/lib/urls";
 import { comparisons } from "@/data/comparisons";
 import { verticals } from "@/data/verticals";
 
@@ -36,7 +37,7 @@ export function LandingHeader() {
             <Link href="/u/camila.nutri" className="btn-ghost text-sm">
               Ver demo
             </Link>
-            <Link href="/crear" className="btn-primary text-sm">
+            <Link href={studioHref("/login")} className="btn-primary text-sm">
               Crear tu tienda
             </Link>
           </nav>
@@ -94,7 +95,7 @@ export function LandingHeader() {
               Ver demo
             </Link>
             <Link
-              href="/crear"
+              href={studioHref("/login")}
               className="btn-primary mt-3 w-full justify-center text-sm"
               onClick={() => setOpen(false)}
             >

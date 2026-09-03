@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CartPageContent } from "@/components/cart-page-content";
 import { CartIcon } from "@/components/cart-icon";
-import { getCreatorByUsername } from "@/lib/demo-store";
+import { getCreatorByUsername } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LandingFooter, LandingHeader } from "@/components/landing-chrome";
 import { getVertical, verticals } from "@/data/verticals";
+import { studioHref } from "@/lib/urls";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -74,7 +75,7 @@ export default async function VerticalPage({ params }: Props) {
         </div>
 
         <div className="mt-12 flex flex-wrap gap-3">
-          <Link href="/crear" className="btn-primary">
+          <Link href={studioHref("/login")} className="btn-primary">
             Crear tu tienda
           </Link>
           <Link href="/u/camila.nutri" className="btn-ghost">

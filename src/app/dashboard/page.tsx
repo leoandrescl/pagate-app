@@ -6,14 +6,13 @@ import { MercadoPagoCard } from "@/components/mercadopago-card";
 import { StoreSettingsPanel } from "@/components/store-settings-panel";
 import { DashboardStoreProvider } from "@/components/store-providers";
 import { WeekCalendar } from "@/components/week-calendar";
-import { resetDemoAction } from "@/lib/actions";
+import { SignOutButton } from "@/components/sign-out-button";
+import { requireUser } from "@/lib/auth";
 import {
   formatClp,
-  getCreator,
-  getStore,
-  listProducts,
+  getMyStore,
   listUpcomingSessions,
-} from "@/lib/demo-store";
+} from "@/lib/store";
 import {
   getGoogleAccountEmail,
   isGoogleConfigured,
@@ -21,6 +20,8 @@ import {
   listUpcomingGoogleEvents,
 } from "@/lib/google-calendar";
 import { formatSlotRange } from "@/lib/slots";
+import { storefrontHref, getAppBaseUrl } from "@/lib/urls";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +31,22 @@ type Props = {
 
 export default async function DashboardPage({ searchParams }: Props) {
   const { google } = await searchParams;
-  const [creator, products, store, sessions, googleOn, googleReady, googleEvents, googleEmail] =
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) redirect("/onboarding");
+
+  const [sessions, googleOn, googleReady, googleEvents, googleEmail] =
     await Promise.all([
-      getCreator(),
-      listProducts(),
-      getStore(),
-      listUpcomingSessions(),
-      isGoogleConnected(),
+      listUpcomingSessions(mine.creator.id),
+      isGoogleConnected(user.id),
       Promise.resolve(isGoogleConfigured()),
-      listUpcomingGoogleEvents(7),
-      getGoogleAccountEmail(),
+      listUpcomingGoogleEvents(user.id, 7),
+      getGoogleAccountEmail(user.id),
     ]);
-  const storeUrl = `/u/${creator.username}`;
+  const creator = mine.creator;
+  const products = mine.products;
+  const store = mine;
+  const storeUrl = storefrontHref(creator.username);
   const { availability } = creator;
   const publicHost = (
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
@@ -53,20 +58,16 @@ export default async function DashboardPage({ searchParams }: Props) {
     <div className="atmosphere min-h-screen">
       <header className="shell flex flex-wrap items-center justify-between gap-4 py-6">
         <div>
-          <Link href="/" className="font-display text-2xl font-semibold text-[var(--ink)]">
+          <Link href={getAppBaseUrl()} className="font-display text-2xl font-semibold text-[var(--ink)]">
             Pagate
           </Link>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">Panel del creador · demo</p>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">Panel del creador</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={storeUrl} className="btn-ghost text-sm">
             Ver mi tienda
           </Link>
-          <form action={resetDemoAction}>
-            <button type="submit" className="btn-ghost text-sm">
-              Reiniciar demo
-            </button>
-          </form>
+          <SignOutButton />
         </div>
       </header>
 
@@ -92,7 +93,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                       className="font-semibold text-[var(--teal-deep)] underline-offset-2 hover:underline"
                     >
                       {publicHost}
-                      {storeUrl}
+                      {storeUrl.startsWith("http") ? storeUrl.replace(/^https?:\/\/[^/]+/, "") : storeUrl}
                     </Link>
                   </p>
                 </div>
@@ -107,7 +108,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 </div>
                 <div className="rounded-2xl bg-[var(--fog)] p-4">
                   <p className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                    Ventas demo
+                    Ventas
                   </p>
                   <p className="mt-1 font-display text-3xl">{store.purchases.length}</p>
                 </div>

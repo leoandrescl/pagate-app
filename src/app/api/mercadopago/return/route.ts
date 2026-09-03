@@ -8,7 +8,7 @@ import {
   fulfillApprovedPayment,
   syncPurchaseFromMercadoPago,
 } from "@/lib/fulfill-payment";
-import { getPurchaseByToken, updatePurchasePayment } from "@/lib/demo-store";
+import { getPurchaseByToken, updatePurchasePayment } from "@/lib/store";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

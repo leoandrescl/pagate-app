@@ -5,8 +5,8 @@ import { StoreHeader } from "@/components/store-header";
 import { StoreProductList } from "@/components/store-product-list";
 import {
   getCreatorByUsername,
-  listProducts,
-} from "@/lib/demo-store";
+  listProductsByUsername,
+} from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function StorePage({ params }: Props) {
   const creator = await getCreatorByUsername(username);
   if (!creator) notFound();
 
-  const products = await listProducts();
+  const products = await listProductsByUsername(username);
 
   return (
     <div className="atmosphere min-h-screen">
@@ -27,9 +27,6 @@ export default async function StorePage({ params }: Props) {
         </Link>
         <div className="flex items-center gap-3">
           <CartIcon username={username} />
-          <Link href="/dashboard" className="btn-ghost text-sm">
-            Soy el creador
-          </Link>
         </div>
       </header>
 

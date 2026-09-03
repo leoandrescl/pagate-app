@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatClp } from "@/lib/format-clp";
 import { CouponField, OrderSummary } from "@/components/coupon-field";
 import { InstallmentBadge } from "@/components/installment-badge";
+import { checkoutCartAction } from "@/lib/actions";
 import type { MockCommunityProduct } from "@/lib/mock-data";
 
 export function CommunityCheckoutForm({
@@ -12,7 +12,6 @@ export function CommunityCheckoutForm({
 }: {
   product: MockCommunityProduct;
 }) {
-  const router = useRouter();
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [discountClp, setDiscountClp] = useState(0);
@@ -34,11 +33,38 @@ export function CommunityCheckoutForm({
       return;
     }
     setPending(true);
-    // MOCK: checkout de comunidad sin backend
-    await new Promise((r) => setTimeout(r, 800));
-    router.push(
-      `/checkout/carrito/confirmado?email=${encodeURIComponent(buyerEmail)}&name=${encodeURIComponent(buyerName)}&total=${effectiveTotal}`,
-    );
+    try {
+      const result = await checkoutCartAction({
+        items: [
+          {
+            productId: product.id,
+            name: product.name,
+            priceClp: product.priceClp,
+            quantity: 1,
+            type: "community",
+          },
+        ],
+        sessionSlots: {},
+        buyerName,
+        buyerEmail,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        setPending(false);
+        return;
+      }
+      if (result.redirectTo?.startsWith("http")) {
+        window.location.href = result.redirectTo;
+        return;
+      }
+      setError("No se recibió la URL de Mercado Pago.");
+      setPending(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo iniciar el pago.",
+      );
+      setPending(false);
+    }
   }
 
   return (
@@ -107,13 +133,16 @@ export function CommunityCheckoutForm({
         />
       </div>
       <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-        Demo: el pago simula Webpay, transferencia o Mercado Pago. No se cobra nada real.
+        Pago con Mercado Pago (Checkout Pro). En prueba usa el usuario TEST de MP;
+        la comisión de Pagate es $0 — solo aplica la de Mercado Pago.
       </p>
       {error ? (
         <p className="text-sm text-[var(--coral)]" role="alert">{error}</p>
       ) : null}
       <button type="submit" disabled={pending} className="btn-primary w-full">
-        {pending ? "Procesando pago mock…" : `Pagar ${formatClp(effectiveTotal)}`}
+        {pending
+          ? "Redirigiendo a Mercado Pago…"
+          : `Pagar con Mercado Pago · ${formatClp(effectiveTotal)}`}
       </button>
     </form>
   );

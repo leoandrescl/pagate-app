@@ -1,16 +1,10 @@
 import type { Product } from "./types";
+import { getAppBaseUrl } from "./urls";
+
+export { getAppBaseUrl };
 
 export function isMercadoPagoConfigured(): boolean {
   return Boolean(process.env.MP_ACCESS_TOKEN?.trim());
-}
-
-export function getAppBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  if (process.env.VERCEL_URL?.trim()) {
-    return `https://${process.env.VERCEL_URL.trim()}`.replace(/\/$/, "");
-  }
-  return "http://localhost:3000";
 }
 
 function getAccessToken(): string {
@@ -26,27 +20,59 @@ function marketplaceFee(): number {
   return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
 }
 
+export type CheckoutPreferenceItem = {
+  id: string;
+  title: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+};
+
 export async function createCheckoutPreference(input: {
-  product: Product;
+  product?: Product;
+  items?: CheckoutPreferenceItem[];
   purchaseToken: string;
   buyerName: string;
   buyerEmail: string;
   slotStart?: string;
+  extraMetadata?: Record<string, string>;
 }): Promise<{ id: string; initPoint: string }> {
   const base = getAppBaseUrl();
   const fee = marketplaceFee();
 
+  const lineItems: CheckoutPreferenceItem[] =
+    input.items && input.items.length > 0
+      ? input.items
+      : input.product
+        ? [
+            {
+              id: input.product.id,
+              title: input.product.name,
+              description: input.product.description,
+              quantity: 1,
+              unitPrice: input.product.priceClp,
+            },
+          ]
+        : [];
+
+  if (lineItems.length === 0) {
+    throw new Error("No hay ítems para cobrar");
+  }
+
+  const amountClp = lineItems.reduce(
+    (sum, item) => sum + Math.round(item.unitPrice) * Math.max(1, item.quantity),
+    0,
+  );
+
   const body: Record<string, unknown> = {
-    items: [
-      {
-        id: input.product.id,
-        title: input.product.name.slice(0, 250),
-        description: input.product.description.slice(0, 600),
-        quantity: 1,
-        currency_id: "CLP",
-        unit_price: Math.round(input.product.priceClp),
-      },
-    ],
+    items: lineItems.map((item) => ({
+      id: item.id.slice(0, 256),
+      title: item.title.slice(0, 250),
+      description: item.description.slice(0, 600),
+      quantity: Math.max(1, Math.round(item.quantity)),
+      currency_id: "CLP",
+      unit_price: Math.round(item.unitPrice),
+    })),
     payer: {
       name: input.buyerName,
       email: input.buyerEmail,
@@ -54,12 +80,13 @@ export async function createCheckoutPreference(input: {
     external_reference: input.purchaseToken,
     metadata: {
       pagate_token: input.purchaseToken,
-      product_id: input.product.id,
-      product_type: input.product.type,
+      product_id: input.product?.id ?? lineItems[0].id,
+      product_type: input.product?.type ?? "",
       buyer_name: input.buyerName,
       buyer_email: input.buyerEmail,
       slot_start: input.slotStart ?? "",
-      amount_clp: String(input.product.priceClp),
+      amount_clp: String(amountClp),
+      ...input.extraMetadata,
     },
     back_urls: {
       success: `${base}/api/mercadopago/return?result=success`,
@@ -90,11 +117,19 @@ export async function createCheckoutPreference(input: {
     sandbox_init_point?: string;
     message?: string;
     error?: string;
+    cause?: Array<{ description?: string; code?: string }>;
   };
 
   if (!res.ok || !data.id) {
+    const cause = data.cause
+      ?.map((c) => c.description || c.code)
+      .filter(Boolean)
+      .join("; ");
     throw new Error(
-      data.message || data.error || `No se pudo crear preferencia MP (${res.status})`,
+      cause ||
+        data.message ||
+        data.error ||
+        `No se pudo crear preferencia MP (${res.status})`,
     );
   }
 

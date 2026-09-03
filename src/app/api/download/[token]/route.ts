@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import { consumeDownload } from "@/lib/demo-store";
+import { consumeDownload } from "@/lib/store";
 
 type Ctx = { params: Promise<{ token: string }> };
 

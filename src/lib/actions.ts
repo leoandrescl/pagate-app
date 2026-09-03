@@ -1,40 +1,45 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
 import {
   createProduct,
   createPurchase,
   createStore,
-  getCreator,
+  getMyStore,
   getProduct,
   isValidUsername,
   normalizeUsername,
-  resetDemoStore,
   updateAvailability,
   updatePurchasePayment,
-} from "@/lib/demo-store";
+} from "@/lib/store";
 import {
   createCheckoutPreference,
   isMercadoPagoConfigured,
 } from "@/lib/mercadopago";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
   | { ok: true; redirectTo?: string; username?: string }
   | { ok: false; error: string };
 
-async function revalidateCreatorPaths(username?: string) {
-  const u = username ?? (await getCreator()).username;
+async function revalidateCreatorPaths(username: string) {
   revalidatePath("/dashboard");
+  revalidatePath("/onboarding");
   revalidatePath("/crear");
-  revalidatePath(`/u/${u}`);
-  revalidatePath(`/u/${u}/carrito`);
+  revalidatePath(`/u/${username}`);
+  revalidatePath(`/u/${username}/carrito`);
 }
 
 export async function createStoreAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  const user = await requireUser();
   const username = normalizeUsername(String(formData.get("username") ?? ""));
   const displayName = String(formData.get("displayName") ?? "").trim();
   const headline = String(formData.get("headline") ?? "").trim();
@@ -92,7 +97,7 @@ export async function createStoreAction(
       return { ok: false, error: "Descripción del producto: mínimo 10 caracteres." };
     }
     if (!Number.isFinite(priceClp) || priceClp < 1000) {
-      return { ok: false, error: "El precio mínimo demo es $1.000 CLP." };
+      return { ok: false, error: "El precio mínimo es $1.000 CLP." };
     }
     if (type !== "digital" && type !== "session") {
       return { ok: false, error: "Tipo de producto inválido." };
@@ -108,7 +113,7 @@ export async function createStoreAction(
   }
 
   try {
-    const store = await createStore({
+    const store = await createStore(user.id, {
       username,
       displayName,
       headline,
@@ -132,6 +137,12 @@ export async function addProductAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) {
+    return { ok: false, error: "Primero crea tu tienda." };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const priceRaw = String(formData.get("priceClp") ?? "").replace(/\D/g, "");
@@ -146,20 +157,20 @@ export async function addProductAction(
     return { ok: false, error: "Agrega una descripción corta." };
   }
   if (!Number.isFinite(priceClp) || priceClp < 1000) {
-    return { ok: false, error: "El precio mínimo demo es $1.000 CLP." };
+    return { ok: false, error: "El precio mínimo es $1.000 CLP." };
   }
   if (type !== "digital" && type !== "session") {
     return { ok: false, error: "Tipo de producto inválido." };
   }
 
-  await createProduct({
+  await createProduct(mine.creator.id, {
     name,
     description,
     priceClp,
     type,
     durationMinutes: type === "session" ? durationRaw || 45 : undefined,
   });
-  await revalidateCreatorPaths();
+  await revalidateCreatorPaths(mine.creator.username);
   return { ok: true };
 }
 
@@ -229,10 +240,115 @@ export async function checkoutAction(
   }
 }
 
+export type CartCheckoutItem = {
+  productId: string;
+  name: string;
+  priceClp: number;
+  quantity: number;
+  type: string;
+};
+
+export async function checkoutCartAction(input: {
+  items: CartCheckoutItem[];
+  sessionSlots: Record<string, string>;
+  buyerName: string;
+  buyerEmail: string;
+}): Promise<ActionResult> {
+  const buyerName = input.buyerName.trim();
+  const buyerEmail = input.buyerEmail.trim();
+  const items = input.items.filter((item) => item.quantity > 0);
+
+  if (items.length === 0) {
+    return { ok: false, error: "El carrito está vacío." };
+  }
+  if (!buyerName || buyerName.length < 2) {
+    return { ok: false, error: "Ingresa tu nombre." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+    return { ok: false, error: "Ingresa un email válido." };
+  }
+
+  for (const item of items) {
+    if (item.type === "session" && !input.sessionSlots[item.productId]) {
+      return { ok: false, error: `Elige un horario para "${item.name}".` };
+    }
+  }
+
+  try {
+    if (!isMercadoPagoConfigured()) {
+      return {
+        ok: false,
+        error: "Mercado Pago no está configurado (falta MP_ACCESS_TOKEN).",
+      };
+    }
+
+    const purchases = [];
+    for (const item of items) {
+      const product = await getProduct(item.productId);
+      if (!product) continue;
+      const purchase = await createPurchase({
+        productId: product.id,
+        buyerName,
+        buyerEmail,
+        slotStart:
+          product.type === "session"
+            ? input.sessionSlots[item.productId]
+            : undefined,
+        status: "pending",
+      });
+      purchases.push(purchase);
+    }
+
+    const purchaseToken =
+      purchases[0]?.token ?? `cart_${randomBytes(12).toString("hex")}`;
+    const sessionItem = items.find((item) => item.type === "session");
+    const firstSessionSlot = sessionItem
+      ? input.sessionSlots[sessionItem.productId]
+      : undefined;
+
+    const preference = await createCheckoutPreference({
+      items: items.map((item) => ({
+        id: item.productId,
+        title: item.name,
+        description: item.name,
+        quantity: item.quantity,
+        unitPrice: item.priceClp,
+      })),
+      purchaseToken,
+      buyerName,
+      buyerEmail,
+      slotStart: firstSessionSlot,
+      extraMetadata: {
+        cart_product_ids: items.map((item) => item.productId).join(","),
+      },
+    });
+
+    for (const purchase of purchases) {
+      await updatePurchasePayment(purchase.token, {
+        mpPreferenceId: preference.id,
+      });
+    }
+
+    revalidatePath("/dashboard");
+    return { ok: true, redirectTo: preference.initPoint };
+  } catch (err) {
+    console.error("[checkout-cart]", err);
+    const message =
+      err instanceof Error ? err.message : "No se pudo iniciar el pago.";
+    return { ok: false, error: message };
+  }
+}
+
 export async function updateAvailabilityAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) {
+    return { ok: false, error: "Primero crea tu tienda." };
+  }
+
   const startHour = Number(formData.get("startHour"));
   const endHour = Number(formData.get("endHour"));
   const slotMinutes = Number(formData.get("slotMinutes"));
@@ -247,17 +363,17 @@ export async function updateAvailabilityAction(
     return { ok: false, error: "Duración de bloque inválida." };
   }
 
-  await updateAvailability({ startHour, endHour, slotMinutes });
-  await revalidateCreatorPaths();
+  await updateAvailability(mine.creator.id, { startHour, endHour, slotMinutes });
+  await revalidateCreatorPaths(mine.creator.username);
   return { ok: true };
 }
 
-export async function resetDemoAction(): Promise<void> {
-  const previousUsername = (await getCreator().catch(() => null))?.username;
-  await resetDemoStore();
-  if (previousUsername && previousUsername !== "camila.nutri") {
-    revalidatePath(`/u/${previousUsername}`);
-    revalidatePath(`/u/${previousUsername}/carrito`);
+export async function signOutAction(): Promise<void> {
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
   }
-  await revalidateCreatorPaths("camila.nutri");
+  revalidatePath("/dashboard");
+  revalidatePath("/login");
+  redirect("/login");
 }

@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { formatClp, getCreator } from "@/lib/demo-store";
+import { formatClp } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ email?: string; name?: string; total?: string }>;
+  searchParams: Promise<{ email?: string; name?: string; total?: string; u?: string }>;
 };
 
 export default async function CartConfirmPage({ searchParams }: Props) {
-  const { email, name, total } = await searchParams;
+  const { email, name, total, u } = await searchParams;
   const totalClp = Number(total) || 0;
-  const creator = await getCreator();
+  const storeHref = u ? `/u/${u}` : "/";
 
   return (
     <div className="atmosphere min-h-screen">
@@ -18,14 +18,11 @@ export default async function CartConfirmPage({ searchParams }: Props) {
         <Link href="/" className="font-display text-xl font-semibold">
           Pagate
         </Link>
-        <Link href="/dashboard" className="btn-ghost text-sm">
-          Ir al panel
-        </Link>
       </header>
 
       <main className="shell relative z-[1] max-w-lg pb-20 pt-8">
         <div className="animate-rise rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-6 backdrop-blur-sm sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--teal)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">
             Pago confirmado
           </p>
           <h1 className="font-display mt-3 text-3xl text-[var(--ink)]">
@@ -36,7 +33,7 @@ export default async function CartConfirmPage({ searchParams }: Props) {
             <strong className="text-[var(--ink)]">
               {formatClp(totalClp)}
             </strong>{" "}
-            fue procesada correctamente (demo).
+            fue procesada correctamente.
           </p>
 
           {email ? (
@@ -46,12 +43,8 @@ export default async function CartConfirmPage({ searchParams }: Props) {
             </div>
           ) : null}
 
-          <p className="mt-4 text-sm text-[var(--ink-muted)]">
-            // MOCK: checkout multi-producto sin persistencia en backend.
-          </p>
-
           <Link
-            href={`/u/${creator.username}`}
+            href={storeHref}
             className="btn-primary mt-8 block w-full text-center"
           >
             Volver a la tienda

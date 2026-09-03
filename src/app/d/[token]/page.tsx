@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatClp, getCreator, getPurchaseByToken } from "@/lib/demo-store";
+import { formatClp, getPurchaseByToken, getStoreById } from "@/lib/store";
 import { DownloadButton } from "@/components/download-button";
 import { syncPurchaseFromMercadoPago } from "@/lib/fulfill-payment";
 import { formatSlotRange } from "@/lib/slots";
@@ -27,8 +27,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
 
   if (!result) notFound();
 
-  const creator = await getCreator();
-  const storeHref = `/u/${creator.username}`;
+  const store = await getStoreById(result.product.creatorId);
+  const storeHref = `/u/${store?.creator.username ?? "camila.nutri"}`;
   const { purchase, product } = result;
   const isSession = product.type === "session";
   const isPaid = purchase.status === "paid";
@@ -57,9 +57,6 @@ export default async function DownloadPage({ params, searchParams }: Props) {
       <header className="shell flex items-center justify-between py-5">
         <Link href="/" className="font-display text-xl font-semibold">
           Pagate
-        </Link>
-        <Link href="/dashboard" className="btn-ghost text-sm">
-          Ir al panel
         </Link>
       </header>
 

@@ -10,6 +10,7 @@ import {
   brandThemeStyle,
   type BrandColorPreset,
 } from "@/lib/mock-data";
+import { studioHref } from "@/lib/urls";
 
 const LANDING_BRAND_KEY = "pagate-landing-brand";
 
@@ -359,7 +360,7 @@ export function LandingPage() {
             productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
           </p>
           <div className="animate-rise-delay-2 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href="/crear" className="btn-primary w-full justify-center sm:w-auto">
+            <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
             <Link href="/u/camila.nutri" className="btn-ghost w-full justify-center sm:w-auto">
@@ -660,11 +661,11 @@ export function LandingPage() {
             Deja de hacer de secretario en cada venta
           </h2>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href="/crear" className="btn-primary w-full justify-center sm:w-auto">
+            <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
-            <Link href="/dashboard" className="btn-ghost w-full justify-center sm:w-auto">
-              Ver panel demo
+            <Link href="/u/camila.nutri" className="btn-ghost w-full justify-center sm:w-auto">
+              Ver tienda demo
             </Link>
           </div>
         </section>
