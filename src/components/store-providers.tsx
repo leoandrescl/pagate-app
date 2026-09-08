@@ -1,7 +1,11 @@
 "use client";
 
 import { CartProvider } from "@/lib/cart-context";
-import { StoreSettingsProvider, useStoreSettings } from "@/lib/store-settings-context";
+import {
+  StoreSettingsProvider,
+  useStoreSettings,
+  type StoreSettings,
+} from "@/lib/store-settings-context";
 
 function BrandThemeWrapper({
   children,
@@ -18,17 +22,15 @@ function BrandThemeWrapper({
 
 export function StoreProviders({
   username,
-  headline,
-  bio,
+  initialSettings,
   children,
 }: {
   username: string;
-  headline: string;
-  bio: string;
+  initialSettings: StoreSettings;
   children: React.ReactNode;
 }) {
   return (
-    <StoreSettingsProvider headline={headline} bio={bio}>
+    <StoreSettingsProvider initialSettings={initialSettings}>
       <BrandThemeWrapper>
         <CartProvider username={username}>{children}</CartProvider>
       </BrandThemeWrapper>
@@ -37,16 +39,14 @@ export function StoreProviders({
 }
 
 export function DashboardStoreProvider({
-  headline,
-  bio,
+  initialSettings,
   children,
 }: {
-  headline: string;
-  bio: string;
+  initialSettings: StoreSettings;
   children: React.ReactNode;
 }) {
   return (
-    <StoreSettingsProvider headline={headline} bio={bio}>
+    <StoreSettingsProvider initialSettings={initialSettings}>
       {children}
     </StoreSettingsProvider>
   );

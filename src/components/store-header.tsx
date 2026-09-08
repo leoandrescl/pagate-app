@@ -34,15 +34,20 @@ export function StoreHeader({
 }) {
   const { settings } = useStoreSettings();
   const { bannerUrl, headline, bio, socialLinks } = settings;
+  const hasBanner = Boolean(bannerUrl.trim());
 
   return (
     <section className="animate-rise overflow-hidden rounded-[1.5rem] border border-[var(--line)] bg-white/80 backdrop-blur-sm">
-      <div
-        className="h-36 w-full bg-cover bg-center sm:h-44"
-        style={{ backgroundImage: `url(${bannerUrl})` }}
-        role="img"
-        aria-label="Banner de portada"
-      />
+      {hasBanner ? (
+        <div
+          className="h-36 w-full bg-cover bg-center sm:h-44"
+          style={{ backgroundImage: `url(${bannerUrl})` }}
+          role="img"
+          aria-label="Banner de portada"
+        />
+      ) : (
+        <div className="h-20 w-full bg-gradient-to-br from-[var(--mint)] to-[var(--fog)] sm:h-24" />
+      )}
       <div className="relative px-5 pb-6 pt-0 text-center sm:px-8">
         <div className="mx-auto -mt-10 flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[var(--teal-deep)] font-display text-2xl text-white shadow-[0_12px_40px_var(--glow)]">
           {avatarInitials}

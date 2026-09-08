@@ -11,8 +11,6 @@ import {
 } from "react";
 import {
   BRAND_COLOR_PRESETS,
-  DEFAULT_BANNER_URL,
-  DEFAULT_BRAND_COLOR,
   brandGlow,
   getBrandDeep,
   type MockCommunityProduct,
@@ -21,30 +19,15 @@ import {
   type StoreSettings,
 } from "@/lib/mock-data";
 
-const SETTINGS_KEY = "pagate-store-settings";
 const COUPONS_KEY = "pagate-creator-coupons";
 const COMMUNITY_KEY = "pagate-community-products";
 
-/** Tras crear tienda: deja headline/bio nuevos. */
-export function seedClientStoreSettings(input: {
+/** @deprecated Ya no se usa localStorage para la vitrina; se mantiene por compat. */
+export function seedClientStoreSettings(_input: {
   headline: string;
   bio: string;
 }): void {
-  if (typeof window === "undefined") return;
-  const settings: StoreSettings = {
-    bannerUrl: DEFAULT_BANNER_URL,
-    bio: input.bio,
-    headline: input.headline,
-    socialLinks: {
-      instagram: "",
-      tiktok: "",
-      whatsapp: "",
-    },
-    brandColor: DEFAULT_BRAND_COLOR.value,
-  };
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  localStorage.setItem(COUPONS_KEY, "[]");
-  localStorage.setItem(COMMUNITY_KEY, "[]");
+  /* no-op: headline/bio viven en Supabase */
 }
 
 type StoreSettingsContextValue = {
@@ -61,35 +44,14 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue | null>(
   null,
 );
 
-function defaultSettings(
-  headline: string,
-  bio: string,
-): StoreSettings {
-  return {
-    bannerUrl: DEFAULT_BANNER_URL,
-    bio,
-    headline,
-    socialLinks: {
-      instagram: "",
-      tiktok: "",
-      whatsapp: "",
-    },
-    brandColor: DEFAULT_BRAND_COLOR.value,
-  };
-}
-
 export function StoreSettingsProvider({
-  headline,
-  bio,
+  initialSettings,
   children,
 }: {
-  headline: string;
-  bio: string;
+  initialSettings: StoreSettings;
   children: ReactNode;
 }) {
-  const [settings, setSettings] = useState<StoreSettings>(() =>
-    defaultSettings(headline, bio),
-  );
+  const [settings, setSettings] = useState<StoreSettings>(initialSettings);
   const [coupons, setCoupons] = useState<MockCoupon[]>([]);
   const [communityProducts, setCommunityProducts] = useState<
     MockCommunityProduct[]
@@ -97,11 +59,11 @@ export function StoreSettingsProvider({
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
+
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) {
-        setSettings({ ...defaultSettings(headline, bio), ...JSON.parse(raw) });
-      }
       const couponsRaw = localStorage.getItem(COUPONS_KEY);
       if (couponsRaw) {
         const parsed = JSON.parse(couponsRaw) as MockCoupon[];
@@ -119,12 +81,7 @@ export function StoreSettingsProvider({
       /* ignore */
     }
     setHydrated(true);
-  }, [headline, bio]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }, [settings, hydrated]);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -137,7 +94,13 @@ export function StoreSettingsProvider({
   }, [communityProducts, hydrated]);
 
   const updateSettings = useCallback((patch: Partial<StoreSettings>) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
+    setSettings((prev) => ({
+      ...prev,
+      ...patch,
+      socialLinks: patch.socialLinks
+        ? { ...prev.socialLinks, ...patch.socialLinks }
+        : prev.socialLinks,
+    }));
   }, []);
 
   const addCoupon = useCallback((coupon: Omit<MockCoupon, "active">) => {

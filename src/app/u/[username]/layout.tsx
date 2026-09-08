@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getCreatorByUsername } from "@/lib/store";
+import { getStoreByUsername } from "@/lib/store";
+import { storeSettingsFromBundle } from "@/lib/store-appearance";
 import { StoreProviders } from "@/components/store-providers";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +12,13 @@ type Props = {
 
 export default async function StoreLayout({ children, params }: Props) {
   const { username } = await params;
-  const creator = await getCreatorByUsername(username);
-  if (!creator) notFound();
+  const store = await getStoreByUsername(username);
+  if (!store) notFound();
 
   return (
     <StoreProviders
       username={username}
-      headline={creator.headline}
-      bio={creator.bio}
+      initialSettings={storeSettingsFromBundle(store)}
     >
       {children}
     </StoreProviders>

@@ -26,6 +26,7 @@ import {
 import { confirmTransferPaidAction } from "@/lib/actions";
 import { formatSlotRange } from "@/lib/slots";
 import { storefrontHref, getAppBaseUrl } from "@/lib/urls";
+import { storeSettingsFromBundle } from "@/lib/store-appearance";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
 
   return (
-    <DashboardStoreProvider headline={creator.headline} bio={creator.bio}>
+    <DashboardStoreProvider initialSettings={storeSettingsFromBundle(mine)}>
     <div className="atmosphere min-h-screen">
       <header className="shell flex flex-wrap items-center justify-between gap-4 py-4 sm:py-5">
         <div>

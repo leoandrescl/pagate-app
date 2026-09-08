@@ -106,6 +106,8 @@ export type StoreBundle = {
   paymentSettings: PaymentSettings;
   socialLinks: StoreSocialLinks;
   avatarUrl: string | null;
+  bannerUrl: string | null;
+  brandColor: string | null;
 };
 
 export type GoogleTokenStore = {

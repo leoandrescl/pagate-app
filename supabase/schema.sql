@@ -35,6 +35,8 @@ create table if not exists public.stores (
   payment_settings jsonb not null default '{}'::jsonb,
   social_links jsonb not null default '{}'::jsonb,
   avatar_url text,
+  banner_url text,
+  brand_color text,
   created_at timestamptz not null default now()
 );
 
@@ -228,6 +230,8 @@ alter table public.stores add column if not exists download_max_count integer no
 alter table public.stores add column if not exists payment_settings jsonb not null default '{}'::jsonb;
 alter table public.stores add column if not exists social_links jsonb not null default '{}'::jsonb;
 alter table public.stores add column if not exists avatar_url text;
+alter table public.stores add column if not exists banner_url text;
+alter table public.stores add column if not exists brand_color text;
 
 -- Purchases reference products without ON DELETE CASCADE; remove those rows first.
 delete from public.purchases

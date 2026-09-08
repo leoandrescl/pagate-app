@@ -62,6 +62,8 @@ type StoreRow = {
   payment_settings: PaymentSettings | null;
   social_links: StoreSocialLinks | null;
   avatar_url: string | null;
+  banner_url: string | null;
+  brand_color: string | null;
 };
 
 type ProductRow = {
@@ -228,6 +230,8 @@ function onboardingFields(row: StoreRow) {
     paymentSettings: paymentFromRow(row),
     socialLinks: socialFromRow(row),
     avatarUrl: row.avatar_url,
+    bannerUrl: row.banner_url?.trim() || null,
+    brandColor: row.brand_color?.trim() || null,
   };
 }
 
@@ -419,6 +423,32 @@ export async function updateAvailability(
     .eq("id", storeId);
   if (error) throw new Error(error.message);
   return availability;
+}
+
+export async function updateStoreAppearance(
+  storeId: string,
+  input: {
+    headline: string;
+    bio: string;
+    bannerUrl: string | null;
+    brandColor: string;
+    socialLinks: StoreSocialLinks;
+  },
+): Promise<void> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const { error } = await db()
+    .from("stores")
+    .update({
+      headline: input.headline,
+      bio: input.bio,
+      banner_url: input.bannerUrl,
+      brand_color: input.brandColor,
+      social_links: input.socialLinks,
+    })
+    .eq("id", storeId);
+  if (error) throw new Error(error.message);
 }
 
 export async function createPurchase(input: {

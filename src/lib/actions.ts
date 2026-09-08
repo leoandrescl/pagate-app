@@ -18,6 +18,7 @@ import {
   normalizeUsername,
   updateAvailability,
   updatePurchasePayment,
+  updateStoreAppearance,
 } from "@/lib/store";
 import {
   createCheckoutPreference,
@@ -27,6 +28,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
 import { validateProductFile } from "@/lib/product-file-rules";
+import { BRAND_COLOR_PRESETS } from "@/lib/mock-data";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
@@ -463,6 +465,63 @@ export async function updateAvailabilityAction(
   }
 
   await updateAvailability(mine.creator.id, { startHour, endHour, slotMinutes });
+  await revalidateCreatorPaths(mine.creator.username);
+  return { ok: true };
+}
+
+function cleanOptionalUrl(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+export async function updateStoreAppearanceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) {
+    return { ok: false, error: "Primero crea tu tienda." };
+  }
+
+  const headline = String(formData.get("headline") ?? "").trim();
+  const bio = String(formData.get("bio") ?? "").trim();
+  const bannerRaw = String(formData.get("bannerUrl") ?? "").trim();
+  const brandColor = String(formData.get("brandColor") ?? "").trim();
+  const allowedColors = BRAND_COLOR_PRESETS.map((p) => p.value) as string[];
+
+  if (headline.length < 4) {
+    return { ok: false, error: "El titular debe tener al menos 4 caracteres." };
+  }
+  if (bio.length > 300) {
+    return { ok: false, error: "La bio admite máximo 300 caracteres." };
+  }
+  if (bannerRaw && !/^https?:\/\//i.test(bannerRaw)) {
+    return { ok: false, error: "El banner debe ser una URL http(s)." };
+  }
+  if (!allowedColors.includes(brandColor)) {
+    return { ok: false, error: "Color de marca inválido." };
+  }
+
+  try {
+    await updateStoreAppearance(mine.creator.id, {
+      headline,
+      bio,
+      bannerUrl: bannerRaw || null,
+      brandColor,
+      socialLinks: {
+        instagram: cleanOptionalUrl(String(formData.get("instagram") ?? "")),
+        tiktok: cleanOptionalUrl(String(formData.get("tiktok") ?? "")),
+        whatsapp: cleanOptionalUrl(String(formData.get("whatsapp") ?? "")),
+      },
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo guardar.",
+    };
+  }
+
   await revalidateCreatorPaths(mine.creator.username);
   return { ok: true };
 }
