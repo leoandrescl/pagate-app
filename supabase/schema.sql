@@ -240,3 +240,24 @@ delete from public.stores
 where id = '11111111-1111-4111-8111-111111111111';
 
 alter table public.purchases add column if not exists payment_method text not null default 'mercadopago';
+
+-- Private bucket for digital product files (service role uploads/downloads).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-files',
+  'product-files',
+  false,
+  5242880,
+  array[
+    'application/pdf',
+    'application/zip',
+    'application/epub+zip',
+    'image/png',
+    'image/jpeg',
+    'image/webp'
+  ]
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;

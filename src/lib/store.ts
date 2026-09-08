@@ -18,6 +18,7 @@ import type {
   StoreSocialLinks,
 } from "./types";
 import { advanceOnboardingStep } from "./onboarding";
+import { uploadProductFile } from "./product-files";
 
 export type { StoreBundle } from "./types";
 
@@ -320,20 +321,37 @@ export async function createProduct(
     priceClp: number;
     type: ProductType;
     durationMinutes?: number;
+    file?: File;
   },
 ): Promise<Product> {
   if (!isSupabaseAdminConfigured()) {
     throw new Error("Supabase no está configurado.");
   }
   const isSession = input.type === "session";
+  const productId = `prod_${randomBytes(4).toString("hex")}`;
+
+  let fileName: string | undefined;
+  let filePath: string | undefined;
+  if (input.type === "digital" && input.file) {
+    const uploaded = await uploadProductFile({
+      storeId,
+      productId,
+      file: input.file,
+    });
+    fileName = uploaded.fileName;
+    filePath = uploaded.filePath;
+  }
+
   const product: Product = {
-    id: `prod_${randomBytes(4).toString("hex")}`,
+    id: productId,
     creatorId: storeId,
     type: input.type,
     name: input.name.trim(),
     description: input.description.trim(),
     priceClp: Math.max(0, Math.round(input.priceClp)),
     durationMinutes: isSession ? input.durationMinutes ?? 45 : undefined,
+    fileName,
+    filePath,
     createdAt: new Date().toISOString(),
   };
   const { error } = await db().from("products").insert({

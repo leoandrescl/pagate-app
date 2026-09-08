@@ -14,6 +14,7 @@ import type { CommunityPlatform } from "@/lib/mock-data";
 import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ProductType } from "@/lib/types";
 import { PaymentMethodPicker } from "@/components/payment-method-picker";
+import { MAX_PRODUCT_FILE_MB } from "@/lib/product-file-rules";
 
 const initial: ActionResult | null = null;
 
@@ -123,7 +124,27 @@ export function AddProductForm() {
       <ProductTypeSelector type={type} setType={setType} />
       <ProductFields type={type} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2" />
+        {type === "digital" ? (
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="file"
+              className="mb-1.5 block text-sm font-medium text-[var(--ink-muted)]"
+            >
+              Archivo (PDF u otro)
+            </label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              required
+              accept=".pdf,.zip,.epub,.png,.jpg,.jpeg,.webp,application/pdf,application/zip,application/epub+zip,image/png,image/jpeg,image/webp"
+              className="field file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--mint)]/50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--teal-deep)]"
+            />
+            <p className="mt-1.5 text-xs text-[var(--ink-muted)]">
+              Máximo {MAX_PRODUCT_FILE_MB} MB · PDF, ZIP, EPUB o imagen
+            </p>
+          </div>
+        ) : null}
         {type === "session" ? (
           <div>
             <label

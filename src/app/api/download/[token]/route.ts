@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { consumeDownload } from "@/lib/store";
+import { downloadProductFile } from "@/lib/product-files";
 
 type Ctx = { params: Promise<{ token: string }> };
 
@@ -23,25 +22,19 @@ export async function POST(_req: Request, ctx: Ctx) {
     );
   }
 
-  const fileAbs = path.join(
-    process.cwd(),
-    "public",
-    result.product.filePath.replace(/^\//, ""),
-  );
-
-  try {
-    const bytes = await fs.readFile(fileAbs);
-    return new NextResponse(bytes, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${result.product.fileName}"`,
-        "Cache-Control": "no-store",
-      },
-    });
-  } catch {
+  const file = await downloadProductFile(result.product.filePath);
+  if (!file) {
     return NextResponse.json(
       { error: "Archivo no encontrado." },
       { status: 404 },
     );
   }
+
+  return new NextResponse(new Uint8Array(file.bytes), {
+    headers: {
+      "Content-Type": file.contentType,
+      "Content-Disposition": `attachment; filename="${result.product.fileName}"`,
+      "Cache-Control": "no-store",
+    },
+  });
 }

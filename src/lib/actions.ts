@@ -26,6 +26,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
+import { validateProductFile } from "@/lib/product-file-rules";
 import type { ProductType } from "@/lib/types";
 
 export type ActionResult =
@@ -154,6 +155,8 @@ export async function addProductAction(
   const priceClp = Number(priceRaw);
   const type = (String(formData.get("type") ?? "digital") as ProductType) || "digital";
   const durationRaw = Number(String(formData.get("durationMinutes") ?? "45"));
+  const fileEntry = formData.get("file");
+  const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null;
 
   if (!name || name.length < 3) {
     return { ok: false, error: "Ingresa un nombre para el producto (mín. 3 caracteres)." };
@@ -167,14 +170,28 @@ export async function addProductAction(
   if (type !== "digital" && type !== "session") {
     return { ok: false, error: "Tipo de producto inválido." };
   }
+  if (type === "digital") {
+    if (!file) {
+      return { ok: false, error: "Sube el PDF u otro archivo del producto." };
+    }
+    const fileError = validateProductFile(file);
+    if (fileError) return { ok: false, error: fileError };
+  }
 
-  await createProduct(mine.creator.id, {
-    name,
-    description,
-    priceClp,
-    type,
-    durationMinutes: type === "session" ? durationRaw || 45 : undefined,
-  });
+  try {
+    await createProduct(mine.creator.id, {
+      name,
+      description,
+      priceClp,
+      type,
+      durationMinutes: type === "session" ? durationRaw || 45 : undefined,
+      file: type === "digital" ? file ?? undefined : undefined,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo publicar el producto.";
+    return { ok: false, error: message };
+  }
   await revalidateCreatorPaths(mine.creator.username);
   return { ok: true };
 }
