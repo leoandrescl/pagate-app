@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { validateCouponAction } from "@/lib/actions";
 import { formatClp } from "@/lib/format-clp";
 
@@ -12,6 +12,7 @@ type AppliedState = {
 type Props = {
   storeId?: string;
   subtotalClp: number;
+  initialCode?: string;
   onApplied?: (result: {
     code: string | null;
     discountClp: number;
@@ -19,13 +20,14 @@ type Props = {
   }) => void;
 };
 
-export function CouponField({ storeId, subtotalClp, onApplied }: Props) {
+export function CouponField({ storeId, subtotalClp, initialCode, onApplied }: Props) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState<AppliedState | null>(null);
   const [pending, setPending] = useState(false);
+  const didInit = useRef(false);
 
-  async function handleApply() {
+  async function validate(rawCode: string) {
     if (!storeId) {
       setError("Cupón no válido");
       return;
@@ -33,7 +35,7 @@ export function CouponField({ storeId, subtotalClp, onApplied }: Props) {
     setPending(true);
     setError(null);
     try {
-      const result = await validateCouponAction(storeId, code, subtotalClp);
+      const result = await validateCouponAction(storeId, rawCode, subtotalClp);
       if (!result.ok) {
         setError(result.error);
         setApplied(null);
@@ -54,6 +56,18 @@ export function CouponField({ storeId, subtotalClp, onApplied }: Props) {
     } finally {
       setPending(false);
     }
+  }
+
+  // Revalida server-side el cupón persistido al montar (p. ej. carrito → checkout).
+  useEffect(() => {
+    if (didInit.current || !initialCode) return;
+    didInit.current = true;
+    void validate(initialCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
+
+  function handleApply() {
+    void validate(code);
   }
 
   function handleRemove() {

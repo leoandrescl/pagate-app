@@ -33,6 +33,8 @@ type CartContextValue = {
   clearCart: () => void;
   sessionSlots: Record<string, string>;
   setSessionSlot: (productId: string, slotIso: string) => void;
+  couponCode: string;
+  setCouponCode: (code: string) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -45,6 +47,10 @@ function slotsKey(username: string) {
   return `pagate-cart-slots-${username}`;
 }
 
+function couponKey(username: string) {
+  return `pagate-cart-coupon-${username}`;
+}
+
 export function CartProvider({
   username,
   children,
@@ -54,6 +60,7 @@ export function CartProvider({
 }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [sessionSlots, setSessionSlots] = useState<Record<string, string>>({});
+  const [couponCode, setCouponCode] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -62,6 +69,8 @@ export function CartProvider({
       if (raw) setItems(JSON.parse(raw) as CartItem[]);
       const slotsRaw = localStorage.getItem(slotsKey(username));
       if (slotsRaw) setSessionSlots(JSON.parse(slotsRaw) as Record<string, string>);
+      const couponRaw = localStorage.getItem(couponKey(username));
+      if (couponRaw) setCouponCode(JSON.parse(couponRaw) as string);
     } catch {
       /* ignore */
     }
@@ -77,6 +86,11 @@ export function CartProvider({
     if (!hydrated) return;
     localStorage.setItem(slotsKey(username), JSON.stringify(sessionSlots));
   }, [sessionSlots, username, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(couponKey(username), JSON.stringify(couponCode));
+  }, [couponCode, username, hydrated]);
 
   const addItem = useCallback((item: Omit<CartItem, "quantity">) => {
     setItems((prev) => {
@@ -114,6 +128,7 @@ export function CartProvider({
   const clearCart = useCallback(() => {
     setItems([]);
     setSessionSlots({});
+    setCouponCode("");
   }, []);
 
   const setSessionSlot = useCallback((productId: string, slotIso: string) => {
@@ -142,6 +157,8 @@ export function CartProvider({
       clearCart,
       sessionSlots,
       setSessionSlot,
+      couponCode,
+      setCouponCode,
     }),
     [
       username,
@@ -154,6 +171,8 @@ export function CartProvider({
       clearCart,
       sessionSlots,
       setSessionSlot,
+      couponCode,
+      setCouponCode,
     ],
   );
 

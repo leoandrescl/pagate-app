@@ -30,10 +30,11 @@ export function CartCheckoutForm({
     sessionSlots,
     setSessionSlot,
     clearCart,
+    couponCode,
+    setCouponCode,
   } = useCart();
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(subtotalClp);
-  const [couponCode, setCouponCode] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [pending, setPending] = useState(false);
@@ -189,6 +190,7 @@ export function CartCheckoutForm({
       <CouponField
         storeId={storeId}
         subtotalClp={subtotalClp}
+        initialCode={couponCode}
         onApplied={({ code, discountClp: d, totalClp: t }) => {
           setCouponCode(code ?? "");
           setDiscountClp(d);

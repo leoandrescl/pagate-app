@@ -14,7 +14,8 @@ export function CartPageContent({
   username: string;
   storeId: string;
 }) {
-  const { items, subtotalClp, removeItem, updateQuantity } = useCart();
+  const { items, subtotalClp, removeItem, updateQuantity, couponCode, setCouponCode } =
+    useCart();
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(subtotalClp);
 
@@ -103,7 +104,9 @@ export function CartPageContent({
         <CouponField
           storeId={storeId}
           subtotalClp={subtotalClp}
-          onApplied={({ discountClp: d, totalClp: t }) => {
+          initialCode={couponCode}
+          onApplied={({ code, discountClp: d, totalClp: t }) => {
+            setCouponCode(code ?? "");
             setDiscountClp(d);
             setTotalClp(t);
           }}
