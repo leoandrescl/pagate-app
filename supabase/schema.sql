@@ -58,6 +58,27 @@ create table if not exists public.products (
 
 create index if not exists products_store_id_idx on public.products (store_id);
 
+create table if not exists public.coupons (
+  id             uuid primary key default gen_random_uuid(),
+  store_id       uuid not null references public.stores(id) on delete cascade,
+  code           text not null
+                   check (code ~ '^[A-Z0-9_-]{6,24}$' and code = upper(code)),
+  discount_type  text not null check (discount_type in ('percentage', 'fixed')),
+  discount_value numeric(12,2) not null check (discount_value > 0),
+  active         boolean not null default true,
+  expires_at     timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+
+  unique (store_id, code),
+
+  constraint coupons_pct_max
+    check (discount_type <> 'percentage' or discount_value <= 100)
+);
+
+comment on table public.coupons is
+  'Cupones de descuento por tienda. V1 sin limites de uso (max_uses/times_used en V2).';
+
 create table if not exists public.purchases (
   id text primary key,
   token text not null unique,
@@ -140,6 +161,7 @@ alter table public.stores enable row level security;
 alter table public.products enable row level security;
 alter table public.purchases enable row level security;
 alter table public.google_calendar_tokens enable row level security;
+alter table public.coupons enable row level security;
 
 drop policy if exists "profiles select own" on public.profiles;
 create policy "profiles select own"
@@ -207,6 +229,26 @@ create policy "purchases owner read"
     )
   );
 
+drop policy if exists "coupons owner manage" on public.coupons;
+drop policy if exists "coupons public read active" on public.coupons;
+
+drop policy if exists "coupons_select_owner" on public.coupons;
+create policy "coupons_select_owner" on public.coupons for select
+  using (store_id in (select id from public.stores where owner_id = auth.uid()));
+
+drop policy if exists "coupons_insert_owner" on public.coupons;
+create policy "coupons_insert_owner" on public.coupons for insert
+  with check (store_id in (select id from public.stores where owner_id = auth.uid()));
+
+drop policy if exists "coupons_update_owner" on public.coupons;
+create policy "coupons_update_owner" on public.coupons for update
+  using (store_id in (select id from public.stores where owner_id = auth.uid()))
+  with check (store_id in (select id from public.stores where owner_id = auth.uid()));
+
+drop policy if exists "coupons_delete_owner" on public.coupons;
+create policy "coupons_delete_owner" on public.coupons for delete
+  using (store_id in (select id from public.stores where owner_id = auth.uid()));
+
 drop policy if exists "gcal tokens own" on public.google_calendar_tokens;
 create policy "gcal tokens own"
   on public.google_calendar_tokens for all
@@ -244,6 +286,52 @@ delete from public.stores
 where id = '11111111-1111-4111-8111-111111111111';
 
 alter table public.purchases add column if not exists payment_method text not null default 'mercadopago';
+alter table public.purchases add column if not exists coupon_id uuid references public.coupons(id) on delete set null;
+
+create index if not exists purchases_coupon_id_idx on public.purchases(coupon_id);
+
+create or replace function public.validate_coupon(
+  p_store_id uuid,
+  p_code     text,
+  p_subtotal numeric
+)
+returns table (valid boolean, discount numeric, coupon_id uuid)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  c          public.coupons%rowtype;
+  v_discount numeric;
+begin
+  select * into c
+  from public.coupons
+  where store_id = p_store_id
+    and code = upper(btrim(p_code))
+  limit 1;
+
+  if not found
+     or not c.active
+     or (c.expires_at is not null and c.expires_at < now()) then
+    return query select false, 0::numeric, null::uuid;
+    return;
+  end if;
+
+  if c.discount_type = 'percentage' then
+    v_discount := floor(p_subtotal * c.discount_value / 100.0);
+  else
+    v_discount := floor(c.discount_value);
+  end if;
+
+  v_discount := least(greatest(v_discount, 0), floor(greatest(p_subtotal, 0)));
+
+  return query select true, v_discount, c.id;
+end;
+$$;
+
+grant execute on function public.validate_coupon(uuid, text, numeric)
+  to anon, authenticated;
 
 -- Private bucket for digital product files (service role uploads/downloads).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

@@ -26,7 +26,7 @@ export default async function CartPage({ params }: Props) {
       </header>
 
       <main className="shell relative z-[1] max-w-lg pb-24 pt-4">
-        <CartPageContent username={username} />
+        <CartPageContent username={username} storeId={creator.id} />
       </main>
     </div>
   );

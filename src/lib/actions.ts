@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import {
+  createCoupon,
   createProduct,
   createPurchase,
   createStore,
+  deleteCoupon,
   getMyStore,
   getProduct,
   getPurchaseByToken,
@@ -15,10 +17,13 @@ import {
   getStoreForProduct,
   isTransferReady,
   isValidUsername,
+  listCoupons,
   normalizeUsername,
+  setCouponActive,
   updateAvailability,
   updatePurchasePayment,
   updateStoreAppearance,
+  validateCouponRpc,
 } from "@/lib/store";
 import {
   createCheckoutPreference,
@@ -29,7 +34,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
 import { validateProductFile } from "@/lib/product-file-rules";
 import { BRAND_COLOR_PRESETS } from "@/lib/mock-data";
-import type { ProductType } from "@/lib/types";
+import { distributeDiscount, normalizeCouponCode } from "@/lib/pricing";
+import type { CouponDiscountType, ProductType } from "@/lib/types";
 
 export type ActionResult =
   | { ok: true; redirectTo?: string; username?: string }
@@ -41,6 +47,35 @@ async function revalidateCreatorPaths(username: string) {
   revalidatePath("/crear");
   revalidatePath(`/u/${username}`);
   revalidatePath(`/u/${username}/carrito`);
+}
+
+/** Convierte `YYYY-MM-DD` al instante UTC de fin de ese día en America/Santiago
+ *  (el cupón queda válido durante todo el día en Chile). */
+function couponExpiryIso(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const wall = Date.UTC(y, m - 1, d, 23, 59, 59, 999);
+  const tz = "America/Santiago";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(wall));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const localAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  const offset = localAsUtc - wall;
+  return new Date(wall - offset).toISOString();
 }
 
 export async function createStoreAction(
@@ -198,6 +233,104 @@ export async function addProductAction(
   return { ok: true };
 }
 
+export type ValidateCouponResult =
+  | { ok: true; code: string; discountClp: number; totalClp: number }
+  | { ok: false; error: string };
+
+/** Valida un cupón de forma server-side vía RPC (vista previa). Respuesta mínima. */
+export async function validateCouponAction(
+  storeId: string,
+  code: string,
+  subtotalClp: number,
+): Promise<ValidateCouponResult> {
+  const normalized = normalizeCouponCode(code);
+  if (!storeId || !normalized) return { ok: false, error: "Cupón no válido" };
+  const sub = Math.max(0, Math.round(Number(subtotalClp) || 0));
+  const result = await validateCouponRpc(storeId, normalized, sub);
+  if (!result.valid) return { ok: false, error: "Cupón no válido" };
+  const discountClp = Math.max(0, Math.round(result.discount));
+  return {
+    ok: true,
+    code: normalized,
+    discountClp,
+    totalClp: Math.max(0, sub - discountClp),
+  };
+}
+
+export async function createCouponAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) return { ok: false, error: "Primero crea tu tienda." };
+
+  const code = normalizeCouponCode(String(formData.get("code") ?? ""));
+  const discountType: CouponDiscountType =
+    String(formData.get("type") ?? "percentage") === "fixed"
+      ? "fixed"
+      : "percentage";
+  const valueRaw = String(formData.get("value") ?? "").replace(",", ".").trim();
+  const discountValue = Number(valueRaw);
+  const expiresAt = String(formData.get("expiresAt") ?? "").trim();
+
+  if (!/^[A-Z0-9_-]{6,24}$/.test(code)) {
+    return {
+      ok: false,
+      error: "El código debe tener 6–24 caracteres: letras, números, \"_\" o \"-\".",
+    };
+  }
+  if (!Number.isFinite(discountValue) || discountValue <= 0) {
+    return { ok: false, error: "Ingresa un valor válido." };
+  }
+  if (discountType === "percentage" && discountValue > 100) {
+    return { ok: false, error: "El porcentaje no puede superar 100%." };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
+    return { ok: false, error: "Elige una fecha de vigencia." };
+  }
+
+  try {
+    await createCoupon(mine.creator.id, {
+      code,
+      discountType,
+      discountValue,
+      expiresAt: couponExpiryIso(expiresAt),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo crear el cupón.",
+    };
+  }
+  await revalidateCreatorPaths(mine.creator.username);
+  return { ok: true };
+}
+
+export async function toggleCouponAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) redirect("/onboarding");
+  const couponId = String(formData.get("couponId") ?? "");
+  const coupon = (await listCoupons(mine.creator.id)).find(
+    (c) => c.id === couponId,
+  );
+  if (!coupon) redirect("/dashboard?mp=error");
+  await setCouponActive(mine.creator.id, couponId, !coupon.active);
+  await revalidateCreatorPaths(mine.creator.username);
+  redirect("/dashboard");
+}
+
+export async function deleteCouponAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const mine = await getMyStore(user.id);
+  if (!mine) redirect("/onboarding");
+  const couponId = String(formData.get("couponId") ?? "");
+  await deleteCoupon(mine.creator.id, couponId);
+  await revalidateCreatorPaths(mine.creator.username);
+  redirect("/dashboard");
+}
+
 export async function checkoutAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -207,6 +340,7 @@ export async function checkoutAction(
   const buyerEmail = String(formData.get("buyerEmail") ?? "").trim();
   const slotStart = String(formData.get("slotStart") ?? "").trim() || undefined;
   const productType = String(formData.get("productType") ?? "digital");
+  const couponCode = normalizeCouponCode(String(formData.get("couponCode") ?? ""));
 
   if (!productId) {
     return { ok: false, error: "Producto inválido." };
@@ -230,6 +364,15 @@ export async function checkoutAction(
     return { ok: false, error: "Tienda no encontrada." };
   }
 
+  let couponId: string | null = null;
+  let discountClp = 0;
+  if (couponCode) {
+    const result = await validateCouponRpc(store.creator.id, couponCode, product.priceClp);
+    if (!result.valid) return { ok: false, error: "Cupón no válido" };
+    couponId = result.couponId;
+    discountClp = result.discount;
+  }
+
   const method =
     String(formData.get("paymentMethod") ?? "mercadopago") === "transfer"
       ? "transfer"
@@ -250,6 +393,8 @@ export async function checkoutAction(
         slotStart,
         status: "pending",
         paymentMethod: "transfer",
+        couponId,
+        discountClp,
       });
       revalidatePath("/dashboard");
       return { ok: true, redirectTo: `/checkout/transferencia?token=${purchase.token}` };
@@ -270,6 +415,8 @@ export async function checkoutAction(
       slotStart,
       status: "pending",
       paymentMethod: "mercadopago",
+      couponId,
+      discountClp,
     });
 
     const preference = await createCheckoutPreference({
@@ -280,6 +427,7 @@ export async function checkoutAction(
       slotStart,
       accessToken,
       applyMarketplaceFee: !store.ownerId,
+      discountClp,
     });
 
     await updatePurchasePayment(purchase.token, {
@@ -310,10 +458,12 @@ export async function checkoutCartAction(input: {
   buyerName: string;
   buyerEmail: string;
   paymentMethod?: "mercadopago" | "transfer";
+  couponCode?: string;
 }): Promise<ActionResult> {
   const buyerName = input.buyerName.trim();
   const buyerEmail = input.buyerEmail.trim();
   const items = input.items.filter((item) => item.quantity > 0);
+  const couponCode = normalizeCouponCode(input.couponCode ?? "");
 
   if (items.length === 0) {
     return { ok: false, error: "El carrito está vacío." };
@@ -332,7 +482,27 @@ export async function checkoutCartAction(input: {
   }
 
   try {
-    const firstProduct = await getProduct(items[0].productId);
+    // Precios y productos SIEMPRE desde el servidor. Nunca se confía en priceClp del cliente.
+    const serverItems: {
+      product: Awaited<ReturnType<typeof getProduct>>;
+      quantity: number;
+      slotStart?: string;
+    }[] = [];
+
+    for (const item of items) {
+      const product = await getProduct(item.productId);
+      if (!product) {
+        return { ok: false, error: "Producto no encontrado." };
+      }
+      serverItems.push({
+        product,
+        quantity: item.quantity,
+        slotStart:
+          product.type === "session" ? input.sessionSlots[item.productId] : undefined,
+      });
+    }
+
+    const firstProduct = serverItems[0]?.product ?? null;
     const store = firstProduct
       ? await getStoreForProduct(firstProduct.id)
       : null;
@@ -340,7 +510,47 @@ export async function checkoutCartAction(input: {
       return { ok: false, error: "Tienda no encontrada." };
     }
 
+    let couponId: string | null = null;
+    const subtotalClp = serverItems.reduce(
+      (sum, it) => sum + (it.product?.priceClp ?? 0) * it.quantity,
+      0,
+    );
+    let discountClp = 0;
+    if (couponCode) {
+      const result = await validateCouponRpc(store.creator.id, couponCode, subtotalClp);
+      if (!result.valid) return { ok: false, error: "Cupón no válido" };
+      couponId = result.couponId;
+      discountClp = result.discount;
+    }
+    const discounts = discountClp > 0
+      ? distributeDiscount(
+          serverItems.map((it) => (it.product?.priceClp ?? 0) * it.quantity),
+          discountClp,
+        )
+      : serverItems.map(() => 0);
+
     const method = input.paymentMethod === "transfer" ? "transfer" : "mercadopago";
+
+    const createPurchases = async () => {
+      const purchases = [];
+      for (let i = 0; i < serverItems.length; i++) {
+        const it = serverItems[i];
+        if (!it.product) continue;
+        const share = discounts[i] ?? 0;
+        const purchase = await createPurchase({
+          productId: it.product.id,
+          buyerName,
+          buyerEmail,
+          slotStart: it.slotStart,
+          status: "pending",
+          paymentMethod: method,
+          couponId: couponId && share > 0 ? couponId : null,
+          discountClp: share,
+        });
+        purchases.push(purchase);
+      }
+      return purchases;
+    };
 
     if (method === "transfer") {
       if (!isTransferReady(store.paymentSettings)) {
@@ -349,23 +559,7 @@ export async function checkoutCartAction(input: {
           error: "Esta tienda no tiene transferencia configurada.",
         };
       }
-      const purchases = [];
-      for (const item of items) {
-        const product = await getProduct(item.productId);
-        if (!product) continue;
-        const purchase = await createPurchase({
-          productId: product.id,
-          buyerName,
-          buyerEmail,
-          slotStart:
-            product.type === "session"
-              ? input.sessionSlots[item.productId]
-              : undefined,
-          status: "pending",
-          paymentMethod: "transfer",
-        });
-        purchases.push(purchase);
-      }
+      const purchases = await createPurchases();
       const token = purchases[0]?.token;
       if (!token) return { ok: false, error: "No se pudo crear la compra." };
       revalidatePath("/dashboard");
@@ -380,48 +574,31 @@ export async function checkoutCartAction(input: {
       };
     }
 
-    const purchases = [];
-    for (const item of items) {
-      const product = await getProduct(item.productId);
-      if (!product) continue;
-      const purchase = await createPurchase({
-        productId: product.id,
-        buyerName,
-        buyerEmail,
-        slotStart:
-          product.type === "session"
-            ? input.sessionSlots[item.productId]
-            : undefined,
-        status: "pending",
-        paymentMethod: "mercadopago",
-      });
-      purchases.push(purchase);
-    }
+    const purchases = await createPurchases();
 
     const purchaseToken =
       purchases[0]?.token ?? `cart_${randomBytes(12).toString("hex")}`;
-    const sessionItem = items.find((item) => item.type === "session");
-    const firstSessionSlot = sessionItem
-      ? input.sessionSlots[sessionItem.productId]
-      : undefined;
+    const sessionItem = serverItems.find((it) => it.product?.type === "session");
+    const firstSessionSlot = sessionItem?.slotStart;
 
     const preference = await createCheckoutPreference({
-      items: items.map((item) => ({
-        id: item.productId,
-        title: item.name,
-        description: item.name,
-        quantity: item.quantity,
-        unitPrice: item.priceClp,
+      items: serverItems.map((it) => ({
+        id: it.product!.id,
+        title: it.product!.name,
+        description: it.product!.description,
+        quantity: it.quantity,
+        unitPrice: it.product!.priceClp,
       })),
       purchaseToken,
       buyerName,
       buyerEmail,
       slotStart: firstSessionSlot,
       extraMetadata: {
-        cart_product_ids: items.map((item) => item.productId).join(","),
+        cart_product_ids: serverItems.map((it) => it.product!.id).join(","),
       },
       accessToken,
       applyMarketplaceFee: !store.ownerId,
+      discountClp,
     });
 
     for (const purchase of purchases) {

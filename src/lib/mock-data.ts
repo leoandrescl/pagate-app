@@ -1,14 +1,4 @@
-/** Tipos y constantes de vitrina (cupones, comunidad, marca). */
-
-export type CouponType = "percent" | "fixed";
-
-export type MockCoupon = {
-  code: string;
-  type: CouponType;
-  value: number;
-  expiresAt: string;
-  active: boolean;
-};
+/** Tipos y constantes de vitrina (comunidad, marca). */
 
 /** Monto mínimo CLP para mostrar badge de cuotas sin interés */
 export const INSTALLMENT_THRESHOLD_CLP = 30_000;

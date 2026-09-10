@@ -9,13 +9,16 @@ import type { MockCommunityProduct } from "@/lib/mock-data";
 
 export function CommunityCheckoutForm({
   product,
+  storeId,
 }: {
   product: MockCommunityProduct;
+  storeId?: string;
 }) {
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(product.priceClp);
+  const [couponCode, setCouponCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +50,7 @@ export function CommunityCheckoutForm({
         sessionSlots: {},
         buyerName,
         buyerEmail,
+        couponCode: couponCode || undefined,
       });
       if (!result.ok) {
         setError(result.error);
@@ -88,8 +92,10 @@ export function CommunityCheckoutForm({
       </div>
 
       <CouponField
+        storeId={storeId}
         subtotalClp={product.priceClp}
-        onApplied={({ discountClp: d, totalClp: t }) => {
+        onApplied={({ code, discountClp: d, totalClp: t }) => {
+          setCouponCode(code ?? "");
           setDiscountClp(d);
           setTotalClp(t);
         }}

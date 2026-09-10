@@ -73,6 +73,7 @@ export default async function CartCheckoutPage({ searchParams }: Props) {
           </p>
           <div className="animate-rise-delay mt-8 rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
             <CartCheckoutForm
+              storeId={store.creator.id}
               slotsByProduct={slotsByProduct}
               googleConnected={googleOn}
               mercadopagoEnabled={mpOn}

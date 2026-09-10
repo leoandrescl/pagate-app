@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth";
 import {
   formatClp,
   getMyStore,
+  listCoupons,
   listUpcomingSessions,
 } from "@/lib/store";
 import {
@@ -54,6 +55,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const creator = mine.creator;
   const products = mine.products;
   const store = mine;
+  const coupons = await listCoupons(mine.creator.id);
   const pendingTransfers = store.purchases.filter(
     (purchase) =>
       purchase.status === "pending" && purchase.paymentMethod === "transfer",
@@ -288,7 +290,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 Códigos de descuento para tus clientes.
               </p>
               <div className="mt-4">
-                <CouponsPanel />
+                <CouponsPanel initialCoupons={coupons} />
               </div>
             </section>
           </div>

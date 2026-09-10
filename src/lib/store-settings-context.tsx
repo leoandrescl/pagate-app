@@ -14,12 +14,10 @@ import {
   brandGlow,
   getBrandDeep,
   type MockCommunityProduct,
-  type MockCoupon,
   type SocialLinks,
   type StoreSettings,
 } from "@/lib/mock-data";
 
-const COUPONS_KEY = "pagate-creator-coupons";
 const COMMUNITY_KEY = "pagate-community-products";
 
 /** @deprecated Ya no se usa localStorage para la vitrina; se mantiene por compat. */
@@ -34,8 +32,6 @@ type StoreSettingsContextValue = {
   settings: StoreSettings;
   updateSettings: (patch: Partial<StoreSettings>) => void;
   brandStyle: React.CSSProperties;
-  coupons: MockCoupon[];
-  addCoupon: (coupon: Omit<MockCoupon, "active">) => void;
   communityProducts: MockCommunityProduct[];
   addCommunityProduct: (product: Omit<MockCommunityProduct, "id" | "type" | "createdAt">) => void;
 };
@@ -52,7 +48,6 @@ export function StoreSettingsProvider({
   children: ReactNode;
 }) {
   const [settings, setSettings] = useState<StoreSettings>(initialSettings);
-  const [coupons, setCoupons] = useState<MockCoupon[]>([]);
   const [communityProducts, setCommunityProducts] = useState<
     MockCommunityProduct[]
   >([]);
@@ -64,15 +59,6 @@ export function StoreSettingsProvider({
 
   useEffect(() => {
     try {
-      const couponsRaw = localStorage.getItem(COUPONS_KEY);
-      if (couponsRaw) {
-        const parsed = JSON.parse(couponsRaw) as MockCoupon[];
-        setCoupons(
-          parsed.filter(
-            (c) => c.code !== "NUTRI5000" && c.code !== "BIENVENIDA10",
-          ),
-        );
-      }
       const communityRaw = localStorage.getItem(COMMUNITY_KEY);
       if (communityRaw) {
         setCommunityProducts(JSON.parse(communityRaw) as MockCommunityProduct[]);
@@ -82,11 +68,6 @@ export function StoreSettingsProvider({
     }
     setHydrated(true);
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
-  }, [coupons, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -101,13 +82,6 @@ export function StoreSettingsProvider({
         ? { ...prev.socialLinks, ...patch.socialLinks }
         : prev.socialLinks,
     }));
-  }, []);
-
-  const addCoupon = useCallback((coupon: Omit<MockCoupon, "active">) => {
-    setCoupons((prev) => [
-      { ...coupon, code: coupon.code.toUpperCase(), active: true },
-      ...prev,
-    ]);
   }, []);
 
   const addCommunityProduct = useCallback(
@@ -138,8 +112,6 @@ export function StoreSettingsProvider({
       settings,
       updateSettings,
       brandStyle,
-      coupons,
-      addCoupon,
       communityProducts,
       addCommunityProduct,
     }),
@@ -147,8 +119,6 @@ export function StoreSettingsProvider({
       settings,
       updateSettings,
       brandStyle,
-      coupons,
-      addCoupon,
       communityProducts,
       addCommunityProduct,
     ],

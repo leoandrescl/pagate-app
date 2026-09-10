@@ -1,5 +1,19 @@
 export type ProductType = "digital" | "session";
 
+export type CouponDiscountType = "percentage" | "fixed";
+
+export type Coupon = {
+  id: string;
+  storeId: string;
+  code: string;
+  discountType: CouponDiscountType;
+  discountValue: number;
+  expiresAt: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type Product = {
   id: string;
   creatorId: string;
@@ -91,6 +105,7 @@ export type Purchase = {
   mpPreferenceId?: string;
   mpPaymentId?: string;
   paymentMethod?: PaymentMethod;
+  couponId?: string | null;
 };
 
 export type StoreBundle = {

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CommunityCheckoutLoader } from "@/components/community-checkout-loader";
 import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
 import { CheckoutForm } from "@/components/forms";
-import { formatClp, getStoreForProduct, isTransferReady } from "@/lib/store";
+import { formatClp, getStoreByUsername, getStoreForProduct, isTransferReady } from "@/lib/store";
 import {
   fetchBusyIntervals,
   isGoogleConnected,
@@ -27,6 +27,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
   if (isCommunityMock) {
     if (!u) notFound();
+    const store = await getStoreByUsername(u);
     const storeHref = `/u/${u}`;
     return (
       <CartCheckoutProviders username={u}>
@@ -43,7 +44,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
               Pago con Mercado Pago (Checkout Pro).
             </p>
             <div className="animate-rise-delay mt-8 rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
-              <CommunityCheckoutLoader productId={productId} />
+              <CommunityCheckoutLoader productId={productId} storeId={store?.creator.id} />
             </div>
           </main>
         </div>
@@ -119,6 +120,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
               googleConnected={googleOn}
               mercadopagoEnabled={mpOn}
               transferEnabled={transferOn}
+              storeId={store.creator.id}
             />
           </div>
         </main>

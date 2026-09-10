@@ -9,6 +9,7 @@ import { checkoutCartAction } from "@/lib/actions";
 import { PaymentMethodPicker } from "@/components/payment-method-picker";
 
 type Props = {
+  storeId: string;
   slotsByProduct: Record<string, string[]>;
   googleConnected: boolean;
   mercadopagoEnabled?: boolean;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export function CartCheckoutForm({
+  storeId,
   slotsByProduct,
   googleConnected,
   mercadopagoEnabled = false,
@@ -31,6 +33,7 @@ export function CartCheckoutForm({
   } = useCart();
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(subtotalClp);
+  const [couponCode, setCouponCode] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [pending, setPending] = useState(false);
@@ -94,6 +97,7 @@ export function CartCheckoutForm({
         buyerName,
         buyerEmail,
         paymentMethod,
+        couponCode: couponCode || undefined,
       });
       if (!result.ok) {
         setError(result.error);
@@ -183,8 +187,10 @@ export function CartCheckoutForm({
       ) : null}
 
       <CouponField
+        storeId={storeId}
         subtotalClp={subtotalClp}
-        onApplied={({ discountClp: d, totalClp: t }) => {
+        onApplied={({ code, discountClp: d, totalClp: t }) => {
+          setCouponCode(code ?? "");
           setDiscountClp(d);
           setTotalClp(t);
         }}

@@ -2,56 +2,39 @@ import { formatClp } from "@/lib/format-clp";
 import {
   INSTALLMENT_COUNT,
   INSTALLMENT_THRESHOLD_CLP,
-  type MockCoupon,
 } from "@/lib/mock-data";
 
-export type AppliedCoupon = MockCoupon & { discountClp: number };
-
-export function validateCoupon(
-  code: string,
-  extraCoupons: MockCoupon[] = [],
-): AppliedCoupon | null {
-  const normalized = code.trim().toUpperCase();
-  if (!normalized) return null;
-
-  const allCoupons = extraCoupons;
-
-  const coupon = allCoupons.find(
-    (c) => c.code === normalized && c.active,
-  );
-  if (!coupon) return null;
-
-  if (new Date(coupon.expiresAt).getTime() < Date.now()) return null;
-
-  return { ...coupon, discountClp: 0 };
+export function normalizeCouponCode(code: string): string {
+  return code.trim().toUpperCase();
 }
 
-export function calculateDiscount(
-  subtotalClp: number,
-  coupon: MockCoupon,
-): number {
-  if (subtotalClp <= 0) return 0;
-  if (coupon.type === "percent") {
-    return Math.round(subtotalClp * (coupon.value / 100));
-  }
-  return Math.min(coupon.value, subtotalClp);
-}
+/** Reparte un descuento entero entre montos sin perder ni un peso. */
+export function distributeDiscount(
+  amounts: number[],
+  discountClp: number,
+): number[] {
+  const clean = amounts.map((a) => Math.max(0, Math.round(a)));
+  const total = clean.reduce((a, b) => a + b, 0);
+  const discount = Math.min(Math.max(0, Math.round(discountClp)), total);
+  if (discount <= 0 || clean.length === 0) return clean.map(() => 0);
 
-export function applyCouponToSubtotal(
-  subtotalClp: number,
-  code: string,
-  extraCoupons: MockCoupon[] = [],
-): { coupon: AppliedCoupon | null; discountClp: number; totalClp: number } {
-  const base = validateCoupon(code, extraCoupons);
-  if (!base) {
-    return { coupon: null, discountClp: 0, totalClp: subtotalClp };
+  const shares = clean.map((a) => Math.floor((a / total) * discount));
+  let remainder = discount - shares.reduce((a, b) => a + b, 0);
+
+  const fractions = clean.map((a, i) => (a / total) * discount - shares[i]);
+  const order = fractions
+    .map((f, i) => i)
+    .sort((a, b) => fractions[b] - fractions[a]);
+
+  let cursor = 0;
+  while (remainder > 0 && cursor < order.length) {
+    const idx = order[cursor % order.length];
+    shares[idx] += 1;
+    remainder -= 1;
+    cursor += 1;
   }
-  const discountClp = calculateDiscount(subtotalClp, base);
-  return {
-    coupon: { ...base, discountClp },
-    discountClp,
-    totalClp: Math.max(0, subtotalClp - discountClp),
-  };
+
+  return shares.map((share, i) => Math.min(share, clean[i]));
 }
 
 export function qualifiesForInstallments(amountClp: number): boolean {

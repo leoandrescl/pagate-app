@@ -358,6 +358,7 @@ export function CheckoutForm({
   isCommunity = false,
   mercadopagoEnabled = false,
   transferEnabled = false,
+  storeId,
 }: {
   productId: string;
   productName: string;
@@ -370,12 +371,14 @@ export function CheckoutForm({
   isCommunity?: boolean;
   mercadopagoEnabled?: boolean;
   transferEnabled?: boolean;
+  storeId?: string;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(checkoutAction, initial);
   const [selectedSlot, setSelectedSlot] = useState(slots[0] ?? "");
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(priceClp);
+  const [couponCode, setCouponCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mercadopago" | "transfer">(
     mercadopagoEnabled ? "mercadopago" : "transfer",
   );
@@ -398,6 +401,7 @@ export function CheckoutForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="productType" value={productType} />
+      <input type="hidden" name="couponCode" value={couponCode} />
       {isSession ? (
         <input type="hidden" name="slotStart" value={selectedSlot} />
       ) : null}
@@ -458,8 +462,10 @@ export function CheckoutForm({
       ) : null}
 
       <CouponField
+        storeId={storeId}
         subtotalClp={priceClp}
-        onApplied={({ discountClp: d, totalClp: t }) => {
+        onApplied={({ code, discountClp: d, totalClp: t }) => {
+          setCouponCode(code ?? "");
           setDiscountClp(d);
           setTotalClp(t);
         }}

@@ -1,47 +1,66 @@
 "use client";
 
 import { useState } from "react";
-import { applyCouponToSubtotal, type AppliedCoupon } from "@/lib/pricing";
+import { validateCouponAction } from "@/lib/actions";
 import { formatClp } from "@/lib/format-clp";
-import { useStoreSettings } from "@/lib/store-settings-context";
+
+type AppliedState = {
+  code: string;
+  discountClp: number;
+};
 
 type Props = {
+  storeId?: string;
   subtotalClp: number;
   onApplied?: (result: {
-    coupon: AppliedCoupon | null;
+    code: string | null;
     discountClp: number;
     totalClp: number;
   }) => void;
 };
 
-export function CouponField({ subtotalClp, onApplied }: Props) {
-  const { coupons: creatorCoupons } = useStoreSettings();
+export function CouponField({ storeId, subtotalClp, onApplied }: Props) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [applied, setApplied] = useState<AppliedCoupon | null>(null);
-  const [discountClp, setDiscountClp] = useState(0);
+  const [applied, setApplied] = useState<AppliedState | null>(null);
+  const [pending, setPending] = useState(false);
 
-  function handleApply() {
-    const result = applyCouponToSubtotal(subtotalClp, code, creatorCoupons);
-    if (!result.coupon) {
+  async function handleApply() {
+    if (!storeId) {
       setError("Cupón no válido");
-      setApplied(null);
-      setDiscountClp(0);
-      onApplied?.({ coupon: null, discountClp: 0, totalClp: subtotalClp });
       return;
     }
+    setPending(true);
     setError(null);
-    setApplied(result.coupon);
-    setDiscountClp(result.discountClp);
-    onApplied?.(result);
+    try {
+      const result = await validateCouponAction(storeId, code, subtotalClp);
+      if (!result.ok) {
+        setError(result.error);
+        setApplied(null);
+        onApplied?.({ code: null, discountClp: 0, totalClp: subtotalClp });
+        return;
+      }
+      setApplied({
+        code: result.code,
+        discountClp: result.discountClp,
+      });
+      onApplied?.({
+        code: result.code,
+        discountClp: result.discountClp,
+        totalClp: result.totalClp,
+      });
+    } catch {
+      setError("No se pudo validar el cupón.");
+    } finally {
+      setPending(false);
+    }
   }
 
   function handleRemove() {
     setCode("");
     setApplied(null);
-    setDiscountClp(0);
     setError(null);
-    onApplied?.({ coupon: null, discountClp: 0, totalClp: subtotalClp });
+    onApplied?.({ code: null, discountClp: 0, totalClp: subtotalClp });
   }
 
   return (
@@ -52,7 +71,7 @@ export function CouponField({ subtotalClp, onApplied }: Props) {
       {applied ? (
         <div className="flex items-center justify-between rounded-xl border border-[var(--teal)] bg-[var(--mint)]/40 px-3 py-2 text-sm">
           <span>
-            <strong>{applied.code}</strong> · −{formatClp(discountClp)}
+            <strong>{applied.code}</strong> · −{formatClp(applied.discountClp)}
           </span>
           <button
             type="button"
@@ -74,8 +93,13 @@ export function CouponField({ subtotalClp, onApplied }: Props) {
             placeholder="Ej. VERANO20"
             className="field flex-1 uppercase"
           />
-          <button type="button" onClick={handleApply} className="btn-ghost shrink-0 text-sm">
-            Aplicar
+          <button
+            type="button"
+            onClick={handleApply}
+            disabled={pending || !code.trim()}
+            className="btn-ghost shrink-0 text-sm"
+          >
+            {pending ? "…" : "Aplicar"}
           </button>
         </div>
       )}

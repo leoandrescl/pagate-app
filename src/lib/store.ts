@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import type {
   Availability,
+  Coupon,
+  CouponDiscountType,
   Creator,
   DownloadPolicy,
   GoogleCalendarConnection,
@@ -19,6 +21,7 @@ import type {
 } from "./types";
 import { advanceOnboardingStep } from "./onboarding";
 import { uploadProductFile } from "./product-files";
+import { normalizeCouponCode } from "./pricing";
 
 export type { StoreBundle } from "./types";
 
@@ -98,6 +101,19 @@ type PurchaseRow = {
   mp_preference_id: string | null;
   mp_payment_id: string | null;
   payment_method: PaymentMethod | null;
+  coupon_id: string | null;
+};
+
+type CouponRow = {
+  id: string;
+  store_id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  expires_at: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at?: string;
 };
 
 function sortProducts(products: Product[]): Product[] {
@@ -157,6 +173,21 @@ function purchaseFromRow(row: PurchaseRow): Purchase {
     mpPreferenceId: row.mp_preference_id ?? undefined,
     mpPaymentId: row.mp_payment_id ?? undefined,
     paymentMethod: row.payment_method === "transfer" ? "transfer" : "mercadopago",
+    couponId: row.coupon_id ?? null,
+  };
+}
+
+function couponFromRow(row: CouponRow): Coupon {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    code: row.code,
+    discountType: row.discount_type === "fixed" ? "fixed" : "percentage",
+    discountValue: Number(row.discount_value),
+    expiresAt: row.expires_at ?? null,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -317,6 +348,115 @@ export async function getStoreForProduct(
   return getStoreById(product.creatorId);
 }
 
+export async function listCoupons(storeId: string): Promise<Coupon[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  const { data, error } = await db()
+    .from("coupons")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data as CouponRow[]).map(couponFromRow);
+}
+
+/** Valida un cupón vía el RPC `validate_coupon` (SECURITY DEFINER en Supabase).
+ *  Devuelve solo lo mínimo: si es válido, el descuento y el coupon_id. */
+export async function validateCouponRpc(
+  storeId: string,
+  code: string,
+  subtotalClp: number,
+): Promise<{ valid: boolean; discount: number; couponId: string | null }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { valid: false, discount: 0, couponId: null };
+  }
+  const { data, error } = await db().rpc("validate_coupon", {
+    p_store_id: storeId,
+    p_code: code,
+    p_subtotal: Math.max(0, Math.round(subtotalClp)),
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { valid: false, discount: 0, couponId: null };
+  return {
+    valid: Boolean(row.valid),
+    discount: Math.round(Number(row.discount ?? 0)),
+    couponId: row.coupon_id ? String(row.coupon_id) : null,
+  };
+}
+
+export async function createCoupon(
+  storeId: string,
+  input: {
+    code: string;
+    discountType: CouponDiscountType;
+    discountValue: number;
+    expiresAt: string | null;
+  },
+): Promise<Coupon> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const code = normalizeCouponCode(input.code);
+  const id = randomUUID();
+  const { error } = await db().from("coupons").insert({
+    id,
+    store_id: storeId,
+    code,
+    discount_type: input.discountType,
+    discount_value: input.discountValue,
+    expires_at: input.expiresAt ?? null,
+    active: true,
+  });
+  if (error) {
+    if (error.code === "23505")
+      throw new Error("Ya existe un cupón con ese código en tu tienda.");
+    if (error.code === "23514")
+      throw new Error("El código solo admite letras, números, \"_\" y \"-\" (6–24 caracteres).");
+    throw new Error(error.message);
+  }
+  return {
+    id,
+    storeId,
+    code,
+    discountType: input.discountType,
+    discountValue: input.discountValue,
+    expiresAt: input.expiresAt ?? null,
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+export async function setCouponActive(
+  storeId: string,
+  couponId: string,
+  active: boolean,
+): Promise<void> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const { error } = await db()
+    .from("coupons")
+    .update({ active })
+    .eq("id", couponId)
+    .eq("store_id", storeId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCoupon(
+  storeId: string,
+  couponId: string,
+): Promise<void> {
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error("Supabase no está configurado.");
+  }
+  const { error } = await db()
+    .from("coupons")
+    .delete()
+    .eq("id", couponId)
+    .eq("store_id", storeId);
+  if (error) throw new Error(error.message);
+}
+
 export async function createProduct(
   storeId: string,
   input: {
@@ -458,6 +598,8 @@ export async function createPurchase(input: {
   slotStart?: string;
   status?: Purchase["status"];
   paymentMethod?: PaymentMethod;
+  couponId?: string | null;
+  discountClp?: number;
 }): Promise<Purchase> {
   if (!isSupabaseAdminConfigured()) {
     throw new Error("Supabase no está configurado.");
@@ -485,13 +627,18 @@ export async function createPurchase(input: {
   const status = input.status ?? "paid";
   const downloads = digitalDownloadFields(store, product.type, status === "paid");
 
+  const discountClp = Math.min(
+    Math.max(0, Math.round(input.discountClp ?? 0)),
+    product.priceClp,
+  );
+
   const purchase: Purchase = {
     id: `pur_${randomBytes(4).toString("hex")}`,
     token: randomBytes(12).toString("hex"),
     productId: product.id,
     buyerName: input.buyerName.trim(),
     buyerEmail: input.buyerEmail.trim().toLowerCase(),
-    amountClp: product.priceClp,
+    amountClp: Math.max(0, product.priceClp - discountClp),
     status,
     downloadsRemaining: downloads.downloadsRemaining,
     expiresAt: downloads.expiresAt,
@@ -500,6 +647,7 @@ export async function createPurchase(input: {
     slotEnd,
     meetUrl: undefined,
     paymentMethod: input.paymentMethod ?? "mercadopago",
+    couponId: discountClp > 0 ? input.couponId ?? null : null,
   };
 
   const { error } = await db().from("purchases").insert(purchaseToRow(purchase, product.creatorId));
@@ -527,6 +675,7 @@ function purchaseToRow(purchase: Purchase, storeId: string) {
     mp_preference_id: purchase.mpPreferenceId ?? null,
     mp_payment_id: purchase.mpPaymentId ?? null,
     payment_method: purchase.paymentMethod ?? "mercadopago",
+    coupon_id: purchase.couponId ?? null,
   };
 }
 

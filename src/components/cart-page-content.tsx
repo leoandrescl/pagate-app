@@ -7,7 +7,13 @@ import { useCart } from "@/lib/cart-context";
 import { CouponField, OrderSummary } from "@/components/coupon-field";
 import { InstallmentBadge } from "@/components/installment-badge";
 
-export function CartPageContent({ username }: { username: string }) {
+export function CartPageContent({
+  username,
+  storeId,
+}: {
+  username: string;
+  storeId: string;
+}) {
   const { items, subtotalClp, removeItem, updateQuantity } = useCart();
   const [discountClp, setDiscountClp] = useState(0);
   const [totalClp, setTotalClp] = useState(subtotalClp);
@@ -95,6 +101,7 @@ export function CartPageContent({ username }: { username: string }) {
 
       <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/80 p-6 backdrop-blur-sm">
         <CouponField
+          storeId={storeId}
           subtotalClp={subtotalClp}
           onApplied={({ discountClp: d, totalClp: t }) => {
             setDiscountClp(d);

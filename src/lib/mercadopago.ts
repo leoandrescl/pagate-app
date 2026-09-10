@@ -206,12 +206,13 @@ export async function createCheckoutPreference(input: {
   extraMetadata?: Record<string, string>;
   accessToken: string;
   applyMarketplaceFee?: boolean;
+  discountClp?: number;
 }): Promise<{ id: string; initPoint: string }> {
   const base = getAppBaseUrl();
   const fee = input.applyMarketplaceFee ? marketplaceFee() : 0;
   const token = input.accessToken;
 
-  const lineItems: CheckoutPreferenceItem[] =
+  let lineItems: CheckoutPreferenceItem[] =
     input.items && input.items.length > 0
       ? input.items
       : input.product
@@ -228,6 +229,36 @@ export async function createCheckoutPreference(input: {
 
   if (lineItems.length === 0) {
     throw new Error("No hay ítems para cobrar");
+  }
+
+  // El descuento se aplica sobre precios validados por servidor.
+  const discount = Math.min(
+    Math.max(0, Math.round(input.discountClp ?? 0)),
+    lineItems.reduce(
+      (sum, item) => sum + Math.round(item.unitPrice) * Math.max(1, item.quantity),
+      0,
+    ),
+  );
+  if (discount > 0) {
+    const total = lineItems.reduce(
+      (sum, item) => sum + Math.round(item.unitPrice) * Math.max(1, item.quantity),
+      0,
+    );
+    const final = total - discount;
+    if (final <= 0) {
+      throw new Error("El cupón deja el total en $0.");
+    }
+    const first = lineItems[0];
+    const extra = lineItems.length - 1;
+    lineItems = [
+      {
+        id: first.id,
+        title: extra > 0 ? `${first.title} y ${extra} más` : first.title,
+        description: first.description,
+        quantity: 1,
+        unitPrice: final,
+      },
+    ];
   }
 
   const amountClp = lineItems.reduce(

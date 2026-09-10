@@ -5,7 +5,13 @@ import { CommunityCheckoutForm } from "@/components/community-checkout-form";
 import { useCart } from "@/lib/cart-context";
 import type { MockCommunityProduct } from "@/lib/mock-data";
 
-export function CommunityCheckoutLoader({ productId }: { productId: string }) {
+export function CommunityCheckoutLoader({
+  productId,
+  storeId,
+}: {
+  productId: string;
+  storeId?: string;
+}) {
   const { username } = useCart();
   const [product, setProduct] = useState<MockCommunityProduct | null>(null);
 
@@ -37,5 +43,5 @@ export function CommunityCheckoutLoader({ productId }: { productId: string }) {
     );
   }
 
-  return <CommunityCheckoutForm product={product} />;
+  return <CommunityCheckoutForm product={product} storeId={storeId} />;
 }
