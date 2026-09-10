@@ -34,6 +34,9 @@ export function LandingHeader() {
             <Link href="/#precios" className="btn-ghost text-sm">
               Precios
             </Link>
+            <a href="https://studio.pagate.cl/login" className="btn-ghost text-sm">
+              Iniciar sesión
+            </a>
             <Link href={studioHref("/login")} className="btn-primary text-sm">
               Crear tu tienda
             </Link>
@@ -84,6 +87,13 @@ export function LandingHeader() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="https://studio.pagate.cl/login"
+              className="btn-ghost mt-3 w-full justify-center text-sm"
+              onClick={() => setOpen(false)}
+            >
+              Iniciar sesión
+            </a>
             <Link
               href={studioHref("/login")}
               className="btn-primary mt-3 w-full justify-center text-sm"
