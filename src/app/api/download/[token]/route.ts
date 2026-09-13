@@ -10,7 +10,7 @@ export async function POST(_req: Request, ctx: Ctx) {
 
   if (!result) {
     return NextResponse.json(
-      { error: "Link expirado o sin descargas restantes." },
+      { error: "Link expirado o inválido." },
       { status: 410 },
     );
   }

@@ -38,7 +38,7 @@ export default async function CartConfirmPage({ searchParams }: Props) {
 
           {email ? (
             <div className="mt-5 rounded-2xl bg-[var(--mint)]/50 px-4 py-3 text-sm text-[var(--teal-deep)]">
-              Email simulado enviado a <strong>{email}</strong> con los accesos,
+              Te enviamos un correo a <strong>{email}</strong> con los accesos,
               descargas y links de comunidad correspondientes.
             </div>
           ) : null}

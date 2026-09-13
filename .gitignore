@@ -47,3 +47,9 @@ next-env.d.ts
 # demo persistence
 /data
 /supabase/.temp
+
+
+# documentos y notas locales
+lanzamiento.pdf
+Analisis_Pulgy_Chile.docx
+pagate-v2.md

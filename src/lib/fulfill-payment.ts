@@ -14,6 +14,7 @@ import {
   resolveAccessTokenForPurchase,
   type MpPayment,
 } from "@/lib/mercadopago";
+import { sendPurchaseEmail } from "@/lib/email";
 import type { Purchase } from "@/lib/types";
 
 function metaString(
@@ -113,6 +114,11 @@ export async function fulfillApprovedPayment(
   await fulfillSessionAfterPaid(purchase.token, `Pago MP: ${payment.id}`);
 
   const fresh = await getPurchaseByToken(token);
+  if (fresh) {
+    sendPurchaseEmail(fresh.purchase, fresh.product).catch((err) =>
+      console.error("[email] fulfillment", err),
+    );
+  }
   return {
     purchase: fresh?.purchase ?? purchase,
     alreadyPaid: false,

@@ -32,6 +32,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
+import { sendPurchaseEmail } from "@/lib/email";
 import { validateProductFile } from "@/lib/product-file-rules";
 import { BRAND_COLOR_PRESETS } from "@/lib/mock-data";
 import { distributeDiscount, normalizeCouponCode } from "@/lib/pricing";
@@ -719,6 +720,12 @@ export async function confirmTransferPaidAction(
   }
   await updatePurchasePayment(token, { status: "paid" });
   await fulfillSessionAfterPaid(token, "Pago por transferencia confirmado");
+  const fresh = await getPurchaseByToken(token);
+  if (fresh) {
+    sendPurchaseEmail(fresh.purchase, fresh.product).catch((err) =>
+      console.error("[email] transfer", err),
+    );
+  }
   const store = await getStoreById(found.product.creatorId);
   if (store) await revalidateCreatorPaths(store.creator.username);
   redirect("/dashboard?mp=transfer_paid");

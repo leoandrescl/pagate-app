@@ -55,8 +55,8 @@ export function DownloadExpiryForm({
           Por defecto son 7 días
         </p>
         <p className="mt-1 text-sm leading-relaxed text-[var(--ink-muted)]">
-          Si no cambias esta configuración, los links expiran a los 7 días con
-          un máximo de 2 descargas por archivo.
+          Si no cambias esta configuración, los links expiran a los 7 días. Las
+          descargas son ilimitadas.
         </p>
       </div>
       <WizardNav

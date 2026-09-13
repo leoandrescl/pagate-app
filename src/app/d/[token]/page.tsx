@@ -35,8 +35,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   const isSession = product.type === "session";
   const isPaid = purchase.status === "paid";
   const expired = new Date(purchase.expiresAt).getTime() < Date.now();
-  const canDownload =
-    isPaid && !isSession && !expired && purchase.downloadsRemaining > 0;
+  const canDownload = isPaid && !isSession && !expired;
 
   if (!isPaid) {
     return (
@@ -89,7 +88,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
 
           {email === "1" ? (
             <div className="mt-5 rounded-2xl bg-[var(--mint)]/50 px-4 py-3 text-sm text-[var(--teal-deep)]">
-              Email simulado enviado a <strong>{purchase.buyerEmail}</strong>
+              Te enviamos un correo a <strong>{purchase.buyerEmail}</strong>
               {isSession
                 ? " con el horario y el link de Meet."
                 : " con este mismo link de descarga."}
@@ -132,13 +131,6 @@ export default async function DownloadPage({ params, searchParams }: Props) {
           {!isSession ? (
             <>
               <div className="mt-6 space-y-2 text-sm text-[var(--ink-muted)]">
-                <p>
-                  Descargas restantes:{" "}
-                  <strong className="text-[var(--ink)]">
-                    {purchase.downloadsRemaining}
-                  </strong>{" "}
-                  / 5
-                </p>
                 <p>
                   Vence:{" "}
                   <strong className="text-[var(--ink)]">

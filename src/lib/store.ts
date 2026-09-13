@@ -854,20 +854,8 @@ export async function consumeDownload(
   if (product.type !== "digital") return null;
   if (purchase.status !== "paid") return null;
   const expired = new Date(purchase.expiresAt).getTime() < Date.now();
-  if (expired || purchase.downloadsRemaining <= 0) return null;
-
-  const { error } = await db()
-    .from("purchases")
-    .update({ downloads_remaining: purchase.downloadsRemaining - 1 })
-    .eq("token", token);
-  if (error) throw new Error(error.message);
-  return {
-    purchase: {
-      ...purchase,
-      downloadsRemaining: purchase.downloadsRemaining - 1,
-    },
-    product,
-  };
+  if (expired) return null;
+  return { purchase, product };
 }
 
 const USERNAME_RE = /^[a-z0-9]([a-z0-9.]{1,22}[a-z0-9])?$/;
