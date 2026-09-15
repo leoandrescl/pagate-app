@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PagateLogo } from "@/components/pagate-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ONBOARDING_STEPPER } from "@/lib/onboarding";
 import { getAppBaseUrl } from "@/lib/urls";
@@ -17,11 +18,8 @@ export function OnboardingChrome({
       <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[#eef6f3]/80 backdrop-blur-md">
         <div className="shell grid grid-cols-[1fr_auto_1fr] items-center py-4 sm:py-5">
           <span />
-          <Link
-            href={getAppBaseUrl()}
-            className="font-display text-center text-2xl font-semibold text-[var(--ink)]"
-          >
-            Pagate
+          <Link href={getAppBaseUrl()} aria-label="Pagate - inicio">
+            <PagateLogo />
           </Link>
           <div className="flex items-center justify-end gap-3">
             {email ? (

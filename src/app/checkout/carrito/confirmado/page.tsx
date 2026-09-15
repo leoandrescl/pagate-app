@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PagateLogo } from "@/components/pagate-logo";
 import { formatClp } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,8 @@ export default async function CartConfirmPage({ searchParams }: Props) {
   return (
     <div className="atmosphere min-h-screen">
       <header className="shell flex items-center justify-between py-5">
-        <Link href="/" className="font-display text-xl font-semibold">
-          Pagate
+        <Link href="/" aria-label="Pagate - inicio">
+          <PagateLogo className="h-7 w-auto" />
         </Link>
       </header>
 

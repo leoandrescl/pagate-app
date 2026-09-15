@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PagateLogo } from "@/components/pagate-logo";
 import { CartIcon } from "@/components/cart-icon";
 import { StoreHeader } from "@/components/store-header";
 import { StoreProductList } from "@/components/store-product-list";
@@ -22,8 +23,8 @@ export default async function StorePage({ params }: Props) {
   return (
     <div className="atmosphere min-h-screen">
       <header className="shell flex items-center justify-between py-5">
-        <Link href="/" className="text-sm font-semibold text-[var(--ink-muted)]">
-          Pagate
+        <Link href="/" aria-label="Pagate - inicio">
+          <PagateLogo className="h-6 w-auto" />
         </Link>
         <div className="flex items-center gap-3">
           <CartIcon username={username} />

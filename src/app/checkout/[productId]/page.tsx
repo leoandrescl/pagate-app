@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PagateLogo } from "@/components/pagate-logo";
 import { CommunityCheckoutLoader } from "@/components/community-checkout-loader";
 import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
 import { CheckoutForm } from "@/components/forms";
@@ -36,7 +37,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             <Link href={storeHref} className="text-sm font-semibold text-[var(--ink-muted)]">
               ← Volver a la tienda
             </Link>
-            <p className="font-display text-lg font-semibold">Pagate</p>
+            <PagateLogo className="h-6 w-auto" />
           </header>
           <main className="shell relative z-[1] max-w-md pb-20 pt-6">
             <h1 className="animate-rise font-display text-3xl text-[var(--ink)]">Checkout</h1>
@@ -91,7 +92,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
           <Link href={storeHref} className="text-sm font-semibold text-[var(--ink-muted)]">
             ← Volver a la tienda
           </Link>
-          <p className="font-display text-lg font-semibold">Pagate</p>
+          <PagateLogo className="h-6 w-auto" />
         </header>
 
         <main className="shell relative z-[1] max-w-md pb-20 pt-6">

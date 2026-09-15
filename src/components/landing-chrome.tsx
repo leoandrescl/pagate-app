@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
+import { PagateLogo } from "@/components/pagate-logo";
 import { studioHref } from "@/lib/urls";
 import { comparisons } from "@/data/comparisons";
 import { verticals } from "@/data/verticals";
@@ -26,14 +26,7 @@ export function LandingHeader() {
             aria-label="Pagate - inicio"
             onClick={() => setOpen(false)}
           >
-            <Image
-              src="/pagate-logo.png"
-              alt="Pagate"
-              width={120}
-              height={32}
-              priority
-              className="h-8 w-auto"
-            />
+            <PagateLogo priority />
           </Link>
 
           <nav className="hidden items-center gap-3 sm:flex" aria-label="Principal">
@@ -123,13 +116,7 @@ export function LandingFooter() {
       <div className="shell grid gap-8 py-10 max-[480px]:gap-9 sm:grid-cols-2 sm:gap-10 sm:py-12 lg:grid-cols-4">
         <div>
           <Link href="/" aria-label="Pagate - inicio">
-            <Image
-              src="/pagate-logo.png"
-              alt="Pagate"
-              width={130}
-              height={35}
-              className="h-9 w-auto"
-            />
+            <PagateLogo className="h-9 w-auto" />
           </Link>
         </div>
         <div>

@@ -7,6 +7,7 @@ import { StoreSettingsPanel } from "@/components/store-settings-panel";
 import { DashboardStoreProvider } from "@/components/store-providers";
 import { WeekCalendar } from "@/components/week-calendar";
 import { SignOutButton } from "@/components/sign-out-button";
+import { PagateLogo } from "@/components/pagate-logo";
 import { ProCheckoutButton } from "@/components/pro-checkout-button";
 import { requireUser } from "@/lib/auth";
 import {
@@ -87,8 +88,8 @@ export default async function DashboardPage({ searchParams }: Props) {
     <div className="atmosphere min-h-screen">
       <header className="shell flex flex-wrap items-center justify-between gap-4 py-4 sm:py-5">
         <div>
-          <Link href={getAppBaseUrl()} className="font-display text-2xl font-semibold text-[var(--ink)]">
-            Pagate
+          <Link href={getAppBaseUrl()} aria-label="Pagate - inicio">
+            <PagateLogo />
           </Link>
           <p className="mt-0.5 text-sm text-[var(--ink-muted)]">Panel del creador</p>
         </div>

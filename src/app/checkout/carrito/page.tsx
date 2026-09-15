@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PagateLogo } from "@/components/pagate-logo";
 import { CartCheckoutForm } from "@/components/cart-checkout-form";
 import { CartCheckoutProviders } from "@/components/cart-checkout-providers";
 import { getStoreByUsername, isTransferReady } from "@/lib/store";
@@ -57,7 +58,7 @@ export default async function CartCheckoutPage({ searchParams }: Props) {
           >
             ← Volver al carrito
           </Link>
-          <p className="font-display text-lg font-semibold">Pagate</p>
+          <PagateLogo className="h-6 w-auto" />
         </header>
 
         <main className="shell relative z-[1] max-w-md pb-20 pt-6">

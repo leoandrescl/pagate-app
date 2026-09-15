@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PagateLogo } from "@/components/pagate-logo";
 import { formatClp, getPurchaseByToken, getStoreById } from "@/lib/store";
 import { DownloadButton } from "@/components/download-button";
 import { syncPurchaseFromMercadoPago } from "@/lib/fulfill-payment";
@@ -67,8 +68,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   return (
     <div className="atmosphere min-h-screen">
       <header className="shell flex items-center justify-between py-5">
-        <Link href="/" className="font-display text-xl font-semibold">
-          Pagate
+        <Link href="/" aria-label="Pagate - inicio">
+          <PagateLogo className="h-7 w-auto" />
         </Link>
       </header>
 

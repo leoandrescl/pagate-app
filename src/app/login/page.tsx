@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GoogleLoginButton } from "@/components/google-login-button";
+import { PagateLogo } from "@/components/pagate-logo";
 import { getUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getMyStore } from "@/lib/store";
@@ -25,11 +26,8 @@ export default async function LoginPage() {
     <div className="atmosphere min-h-screen">
       <header className="sticky top-0 z-50 border-b border-[var(--line)]/60 bg-[#eef6f3]/80 backdrop-blur-md">
         <div className="shell flex items-center justify-between py-4 sm:py-5">
-          <Link
-            href={getAppBaseUrl()}
-            className="font-display text-2xl font-semibold text-[var(--ink)]"
-          >
-            Pagate
+          <Link href={getAppBaseUrl()} aria-label="Pagate - inicio">
+            <PagateLogo />
           </Link>
           <Link href={getAppBaseUrl()} className="btn-ghost text-sm">
             Volver a Pagate

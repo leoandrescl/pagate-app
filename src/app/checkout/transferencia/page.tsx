@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PagateLogo } from "@/components/pagate-logo";
 import { formatClp, getPurchaseByToken, getStoreById } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export default async function TransferenciaPage({ searchParams }: Props) {
         >
           ← Volver a la tienda
         </Link>
-        <p className="font-display text-lg font-semibold">Pagate</p>
+        <PagateLogo className="h-6 w-auto" />
       </header>
 
       <main className="shell relative z-[1] max-w-md pb-20 pt-6">
