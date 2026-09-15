@@ -246,6 +246,14 @@ function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Tinte por familia de función: variedad sin salir de la paleta. */
+const FEATURE_TINTS: Record<(typeof FEATURES)[number]["preview"], string> = {
+  coupon: "border-[var(--teal)]/35 bg-[var(--mint)]/25",
+  bio: "border-[var(--line)] bg-[var(--sand)]/35",
+  community: "border-[var(--line)] bg-white/60",
+  installments: "border-[var(--line)] bg-[var(--fog)]/80",
+};
+
 function FeaturePreview({ kind }: { kind: (typeof FEATURES)[number]["preview"] }) {
   if (kind === "coupon") {
     return (
@@ -535,7 +543,7 @@ export function LandingPage() {
               {BENEFITS.map((b) => (
                 <div
                   key={b.title}
-                  className="border-t border-[var(--line)] pt-5 sm:rounded-[1.25rem] sm:border sm:border-[var(--line)] sm:bg-[var(--fog)]/70 sm:p-6 sm:pt-6"
+                  className="border-t border-[var(--line)] pt-5 transition-transform duration-200 hover:-translate-y-0.5 sm:rounded-[1.25rem] sm:border sm:border-[var(--line)] sm:bg-[var(--fog)]/70 sm:p-6 sm:pt-6"
                 >
                   <h3 className="font-display text-xl text-[var(--ink)]">{b.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">{b.body}</p>
@@ -556,7 +564,7 @@ export function LandingPage() {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="rounded-[1.25rem] border border-[var(--line)] bg-white/55 p-6 backdrop-blur-sm"
+                className={`rounded-[1.25rem] border p-6 backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1 ${FEATURE_TINTS[f.preview]}`}
               >
                 <Badge>{f.badge}</Badge>
                 <h3 className="font-display mt-3 text-xl text-[var(--ink)]">{f.title}</h3>
@@ -614,31 +622,32 @@ export function LandingPage() {
         </section>
 
         {/* 2.8 Precios */}
-        <section className="mt-20" id="precios">
+        <section className="band-dark mt-20 px-6 py-10 sm:p-12" id="precios">
           <SectionHeading
+            dark
             eyebrow="07 · Precio"
             title="Prueba gratis, pásate a Pro cuando crezcas"
             subtitle="Empieza sin pagar nada: publica hasta 3 productos y haz tus primeras 5 ventas. Cuando superes ese límite, pasas a Pro y vendes sin tope."
           />
-          <p className="mt-6 max-w-2xl rounded-[1rem] border border-[var(--teal)]/30 bg-[var(--mint)]/35 px-4 py-3 text-sm leading-relaxed text-[var(--teal-deep)] sm:text-base">
+          <p className="mt-6 max-w-2xl rounded-[1rem] border border-white/25 bg-white/10 px-4 py-3 text-sm leading-relaxed text-white/85 sm:text-base">
             Sin comisión por venta — Pagate no se queda con un porcentaje de tus ventas. Solo
             pagas las comisiones estándar de tu pasarela de pago.
           </p>
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
-            <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/55 p-6 backdrop-blur-sm sm:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            <div className="rounded-[1.5rem] border border-white/25 bg-white/10 p-6 backdrop-blur-sm sm:p-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-white/70">
                 Plan Gratis
               </p>
-              <p className="mt-2 text-sm text-[var(--ink-muted)]">Ideal para probar</p>
-              <p className="font-display mt-3 text-4xl text-[var(--ink)]">$0</p>
-              <p className="mt-1 text-sm text-[var(--ink-muted)]">al arrancar</p>
-              <p className="mt-3 text-sm font-medium text-[var(--ink)]">
+              <p className="mt-2 text-sm text-white/70">Ideal para probar</p>
+              <p className="font-display mt-3 text-4xl text-white">$0</p>
+              <p className="mt-1 text-sm text-white/70">al arrancar</p>
+              <p className="mt-3 text-sm font-medium text-white">
                 Hasta 3 productos · primeras 5 ventas gratis
               </p>
               <ul className="mt-6 space-y-2.5">
                 {FREE_PLAN.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-[var(--ink-muted)]">
-                    <span className="text-[var(--teal)]" aria-hidden>
+                  <li key={item} className="flex gap-2 text-sm text-white/80">
+                    <span className="text-[var(--mint)]" aria-hidden>
                       ✓
                     </span>
                     {item}
@@ -646,7 +655,7 @@ export function LandingPage() {
                 ))}
               </ul>
             </div>
-            <div className="rounded-[1.5rem] border border-[var(--teal)]/40 bg-white/70 p-6 shadow-[0_16px_40px_var(--glow)] backdrop-blur-sm sm:p-8">
+            <div className="rounded-[1.5rem] bg-white p-6 text-[var(--ink)] shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--teal-deep)]">
                   Plan Pro
@@ -685,7 +694,7 @@ export function LandingPage() {
               </Link>
             </div>
           </div>
-          <p className="mt-6 text-center text-sm text-[var(--ink-muted)]">
+          <p className="mt-6 text-center text-sm text-white/70">
             Cancelas cuando quieras · Sin contratos · Tu plata va directo a tu cuenta, Pagate no
             la toca
           </p>
