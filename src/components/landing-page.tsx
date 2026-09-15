@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { LandingFooter, LandingHeader } from "@/components/landing-chrome";
+import { StoreMockup } from "@/components/store-mockup";
 import { comparisons } from "@/data/comparisons";
 import {
   BRAND_COLOR_PRESETS,
@@ -369,25 +370,33 @@ export function LandingPage() {
       <LandingHeader />
 
       <main className="shell relative z-[1] overflow-x-clip pb-8 pt-10 sm:pt-16">
-        <section className="max-w-3xl">
-          <p className="animate-rise text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">
-            Chile · creadores y profesionales
-          </p>
-          <h1 className="animate-rise-delay font-display mt-4 text-5xl leading-[1.05] text-[var(--ink)] sm:text-7xl">
-            Pagate
-          </h1>
-          <p className="animate-rise-delay-2 mt-5 max-w-xl text-lg leading-relaxed text-[var(--ink-muted)] sm:text-xl">
-            Deja de hacer de secretario en cada venta. Un link para mostrar tus
-            productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
-          </p>
-          <div className="animate-rise-delay-2 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href={studioHref("/login")} className="btn-primary w-full justify-center !shadow-none hover:!shadow-none sm:w-auto">
-              Crear tu tienda
-            </Link>
+        <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="max-w-3xl">
+            <p className="animate-rise text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">
+              Chile · creadores y profesionales
+            </p>
+            <h1 className="animate-rise-delay font-display mt-4 text-5xl leading-[1.05] text-[var(--ink)] sm:text-7xl">
+              Pagate
+            </h1>
+            <p className="animate-rise-delay-2 mt-5 max-w-xl text-lg leading-relaxed text-[var(--ink-muted)] sm:text-xl">
+              Deja de hacer de secretario en cada venta. Un link para mostrar tus
+              productos digitales, agendar sesiones 1:1, cobrar en CLP y entregar solo.
+            </p>
+            <div className="animate-rise-delay-2 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
+                Crear tu tienda
+              </Link>
+              <Link href="/#precios" className="btn-ghost w-full justify-center sm:w-auto">
+                Ver precios
+              </Link>
+            </div>
+            <p className="mt-6 text-sm text-[var(--ink-muted)]">
+              Mercado Pago · sin comisión de plataforma
+            </p>
           </div>
-          <p className="mt-6 text-sm text-[var(--ink-muted)]">
-            Mercado Pago · sin comisión de plataforma
-          </p>
+          <div className="animate-rise-delay-2">
+            <StoreMockup />
+          </div>
         </section>
 
         {/* 2.1 Integraciones + vs */}
