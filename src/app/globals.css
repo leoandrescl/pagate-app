@@ -240,6 +240,26 @@ body::after {
   border-bottom: none;
 }
 
+/* Bandas de sección (landing): ritmo visual sin salir de la paleta.
+ * Paneles redondeados dentro de .shell: no pelean con la atmósfera fija. */
+.band-panel {
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.band-dark {
+  border-radius: 2rem;
+  background: linear-gradient(
+    155deg,
+    #081f1b 0%,
+    var(--teal-deep) 68%,
+    #12705a 100%
+  );
+  color: #f2faf7;
+}
+
 @media (min-width: 640px) {
   .product-row {
     grid-template-columns: 1fr auto;

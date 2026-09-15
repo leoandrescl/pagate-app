@@ -196,19 +196,40 @@ const WITH = [
 function SectionHeading({
   title,
   subtitle,
+  eyebrow,
   id,
+  dark = false,
 }: {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
   id?: string;
+  dark?: boolean;
 }) {
   return (
     <div className="max-w-2xl" id={id}>
-      <h2 className="font-display text-3xl leading-tight text-[var(--ink)] sm:text-4xl">
+      {eyebrow ? (
+        <p
+          className={`text-sm font-semibold uppercase tracking-[0.18em] ${
+            dark ? "text-[var(--mint)]" : "text-[var(--teal)]"
+          }`}
+        >
+          {eyebrow}
+        </p>
+      ) : null}
+      <h2
+        className={`font-display mt-3 text-3xl leading-tight sm:text-4xl ${
+          dark ? "text-white" : "text-[var(--ink)]"
+        }`}
+      >
         {title}
       </h2>
       {subtitle ? (
-        <p className="mt-3 text-base leading-relaxed text-[var(--ink-muted)] sm:text-lg">
+        <p
+          className={`mt-3 text-base leading-relaxed sm:text-lg ${
+            dark ? "text-white/75" : "text-[var(--ink-muted)]"
+          }`}
+        >
           {subtitle}
         </p>
       ) : null}
@@ -398,6 +419,7 @@ export function LandingPage() {
         {/* 2.2 Problema */}
         <section className="mt-20">
           <SectionHeading
+            eyebrow="01 · El problema"
             title="Cobras bien, pero pierdes horas en cada venta"
             subtitle="Tienes la audiencia. Tienes el producto. Te falta una herramienta que no te obligue a hacer de secretario, cajero y mensajero."
           />
@@ -443,7 +465,10 @@ export function LandingPage() {
 
         {/* 2.3 Usos */}
         <section className="mt-20">
-          <SectionHeading title="Lo que puedes vender con Pagate" />
+          <SectionHeading
+            eyebrow="02 · Casos de uso"
+            title="Lo que puedes vender con Pagate"
+          />
           <div className="mt-8">
             {USE_CASES.map((item, i) => (
               <AccordionItem
@@ -466,7 +491,10 @@ export function LandingPage() {
 
         {/* 2.4 Cómo funciona */}
         <section className="mt-20">
-          <SectionHeading title="Lanza tu tienda en minutos" />
+          <SectionHeading
+            eyebrow="03 · Cómo funciona"
+            title="Lanza tu tienda en minutos"
+          />
           <ol className="mt-10 space-y-0">
             {STEPS.map((step, i) => (
               <li
@@ -489,23 +517,29 @@ export function LandingPage() {
 
         {/* 2.5 Beneficios */}
         <section className="mt-20" id="beneficios">
-          <SectionHeading title="Todo lo que necesitas para vender online, en un solo lugar" />
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {BENEFITS.map((b) => (
-              <div
-                key={b.title}
-                className="border-t border-[var(--line)] pt-5 sm:border sm:rounded-[1.25rem] sm:border-[var(--line)] sm:bg-white/50 sm:p-6 sm:pt-6 sm:backdrop-blur-sm"
-              >
-                <h3 className="font-display text-xl text-[var(--ink)]">{b.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">{b.body}</p>
-              </div>
-            ))}
+          <SectionHeading
+            eyebrow="04 · Beneficios"
+            title="Todo lo que necesitas para vender online, en un solo lugar"
+          />
+          <div className="band-panel mt-10 p-6 sm:p-10">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {BENEFITS.map((b) => (
+                <div
+                  key={b.title}
+                  className="border-t border-[var(--line)] pt-5 sm:rounded-[1.25rem] sm:border sm:border-[var(--line)] sm:bg-[var(--fog)]/70 sm:p-6 sm:pt-6"
+                >
+                  <h3 className="font-display text-xl text-[var(--ink)]">{b.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">{b.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* 2.6 Lo nuevo */}
         <section className="mt-20">
           <SectionHeading
+            eyebrow="05 · Novedades"
             title="Funciones que ya puedes usar"
             subtitle="Seguimos sumando funciones para que vendas más sin pelear con la tecnología."
           />
@@ -527,6 +561,7 @@ export function LandingPage() {
         {/* 2.7 Personalización */}
         <section className="mt-20" id="estilo">
           <SectionHeading
+            eyebrow="06 · Personalización"
             title="Tu tienda, tu estilo"
             subtitle="Elige un color y mira cómo cambia botones, badges y acentos en esta página. El texto oscuro se mantiene legible."
           />
@@ -572,6 +607,7 @@ export function LandingPage() {
         {/* 2.8 Precios */}
         <section className="mt-20" id="precios">
           <SectionHeading
+            eyebrow="07 · Precio"
             title="Prueba gratis, pásate a Pro cuando crezcas"
             subtitle="Empieza sin pagar nada: publica hasta 3 productos y haz tus primeras 5 ventas. Cuando superes ese límite, pasas a Pro y vendes sin tope."
           />
@@ -648,7 +684,7 @@ export function LandingPage() {
 
         {/* 2.9 FAQ */}
         <section className="mt-20" id="faq">
-          <SectionHeading title="Preguntas frecuentes" />
+          <SectionHeading eyebrow="08 · Dudas" title="Preguntas frecuentes" />
           <div className="mt-8">
             {FAQ.map((item, i) => (
               <AccordionItem
@@ -664,12 +700,18 @@ export function LandingPage() {
         </section>
 
         {/* CTA final */}
-        <section className="mt-20 max-w-3xl pb-8">
-          <h2 className="font-display text-3xl leading-tight text-[var(--ink)] sm:text-5xl">
+        <section className="band-dark mt-20 px-6 py-12 sm:px-12 sm:py-16">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--mint)]">
+            Empieza hoy
+          </p>
+          <h2 className="font-display mt-3 max-w-3xl text-3xl leading-tight text-white sm:text-5xl">
             Deja de hacer de secretario en cada venta
           </h2>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
+            Publica tu tienda en minutos y cobra tu primera venta esta semana.
+          </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href={studioHref("/login")} className="btn-primary w-full justify-center !shadow-none hover:!shadow-none sm:w-auto">
+            <Link href={studioHref("/login")} className="btn-primary w-full justify-center sm:w-auto">
               Crear tu tienda
             </Link>
           </div>
