@@ -9,6 +9,7 @@ import {
   fulfillApprovedPayment,
   syncPurchaseFromMercadoPago,
 } from "@/lib/fulfill-payment";
+import { fulfillPlanPayment } from "@/lib/plans";
 import { getPurchaseByToken, getStoreById, updatePurchasePayment } from "@/lib/store";
 
 export async function GET(request: Request) {
@@ -40,6 +41,11 @@ export async function GET(request: Request) {
 
     if (paymentId && mpApproved) {
       const payment = await getPayment(paymentId, accessToken);
+      // Pago de suscripción Pro: activar el plan y volver al dashboard.
+      const plan = await fulfillPlanPayment(payment);
+      if (plan) {
+        return NextResponse.redirect(new URL(`/dashboard?mp=pro_ok`, base));
+      }
       const fulfilled = await fulfillApprovedPayment(payment);
       if (fulfilled) {
         return NextResponse.redirect(

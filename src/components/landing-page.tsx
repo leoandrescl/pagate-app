@@ -141,7 +141,7 @@ const PRO_PLAN = [
 const FAQ = [
   {
     q: "¿Cuánto cuesta usar Pagate?",
-    a: "Empieza gratis con hasta 3 productos y tus primeras 5 ventas. Pro cuesta $8.990/mes, sin comisión de Pagate por venta.",
+    a: "Empieza gratis con hasta 3 productos y tus primeras 5 ventas. Pro cuesta $9.990/mes en lanzamiento (precio normal $14.990), sin comisión de Pagate por venta.",
   },
   {
     q: "¿Cómo recibo el dinero de mis ventas?",
@@ -609,8 +609,13 @@ export function LandingPage() {
                 <Badge>Precio de lanzamiento</Badge>
               </div>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">Para vender sin tope</p>
-              <p className="font-display mt-3 text-4xl text-[var(--ink)]">$8.990</p>
-              <p className="mt-1 text-sm text-[var(--ink-muted)]">/mes</p>
+              <p className="font-display mt-3 text-4xl text-[var(--ink)]">
+                $9.990{" "}
+                <span className="text-xl text-[var(--ink-muted)] line-through">
+                  $14.990
+                </span>
+              </p>
+              <p className="mt-1 text-sm text-[var(--ink-muted)]">/mes · precio de lanzamiento</p>
               <p className="mt-3 text-sm font-medium text-[var(--ink)]">
                 Se paga solo con 1 sesión o 2 ventas al mes
               </p>
@@ -627,6 +632,12 @@ export function LandingPage() {
                   </li>
                 ))}
               </ul>
+              <Link
+                href={studioHref("/dashboard?upgrade=pro")}
+                className="btn-primary mt-6 w-full justify-center"
+              >
+                Pasar a Pro
+              </Link>
             </div>
           </div>
           <p className="mt-6 text-center text-sm text-[var(--ink-muted)]">

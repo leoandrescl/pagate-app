@@ -34,9 +34,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { fulfillSessionAfterPaid } from "@/lib/fulfill-payment";
 import { sendPurchaseEmail } from "@/lib/email";
 import { validateProductFile } from "@/lib/product-file-rules";
-import { BRAND_COLOR_PRESETS } from "@/lib/mock-data";
+import { BRAND_COLOR_PRESETS, DEFAULT_BRAND_COLOR } from "@/lib/mock-data";
 import { distributeDiscount, normalizeCouponCode } from "@/lib/pricing";
-import type { CouponDiscountType, ProductType } from "@/lib/types";
+import {
+  FREE_MAX_PRODUCTS,
+  FREE_MAX_SALES,
+  getProStatus,
+} from "@/lib/plans";
+import type { CouponDiscountType, ProductType, StoreBundle } from "@/lib/types";
 
 export type ActionResult =
   | { ok: true; redirectTo?: string; username?: string }
@@ -49,6 +54,16 @@ async function revalidateCreatorPaths(username: string) {
   revalidatePath(`/u/${username}`);
   revalidatePath(`/u/${username}/carrito`);
 }
+
+/** Plan Gratis: tope de ventas alcanzado y sin Pro vigente. */
+async function freeSalesLimitReached(store: StoreBundle): Promise<boolean> {
+  const paid = store.purchases.filter((p) => p.status === "paid").length;
+  if (paid < FREE_MAX_SALES) return false;
+  return !(await getProStatus(store.ownerId)).isPro;
+}
+
+const FREE_LIMIT_ERROR =
+  "Esta tienda alcanzó el límite del plan Gratis (5 ventas). Pasa a Pro para seguir vendiendo sin tope.";
 
 /** Convierte `YYYY-MM-DD` al instante UTC de fin de ese día en America/Santiago
  *  (el cupón queda válido durante todo el día en Chile). */
@@ -186,6 +201,16 @@ export async function addProductAction(
   if (!mine) {
     return { ok: false, error: "Primero crea tu tienda." };
   }
+  if (
+    mine.products.length >= FREE_MAX_PRODUCTS &&
+    !(await getProStatus(user.id)).isPro
+  ) {
+    return {
+      ok: false,
+      error:
+        "Llegaste al tope del plan Gratis (3 productos). Pasa a Pro para publicar sin límite.",
+    };
+  }
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -265,6 +290,13 @@ export async function createCouponAction(
   const user = await requireUser();
   const mine = await getMyStore(user.id);
   if (!mine) return { ok: false, error: "Primero crea tu tienda." };
+  if (!(await getProStatus(user.id)).isPro) {
+    return {
+      ok: false,
+      error:
+        "Los cupones son un beneficio Pro. Activa tu plan para crear códigos de descuento.",
+    };
+  }
 
   const code = normalizeCouponCode(String(formData.get("code") ?? ""));
   const discountType: CouponDiscountType =
@@ -363,6 +395,9 @@ export async function checkoutAction(
   const store = await getStoreForProduct(productId);
   if (!store) {
     return { ok: false, error: "Tienda no encontrada." };
+  }
+  if (await freeSalesLimitReached(store)) {
+    return { ok: false, error: FREE_LIMIT_ERROR };
   }
 
   let couponId: string | null = null;
@@ -509,6 +544,9 @@ export async function checkoutCartAction(input: {
       : null;
     if (!store) {
       return { ok: false, error: "Tienda no encontrada." };
+    }
+    if (await freeSalesLimitReached(store)) {
+      return { ok: false, error: FREE_LIMIT_ERROR };
     }
 
     let couponId: string | null = null;
@@ -680,6 +718,18 @@ export async function updateStoreAppearanceAction(
   if (!allowedColors.includes(brandColor)) {
     return { ok: false, error: "Color de marca inválido." };
   }
+  // El color ya guardado se respeta; solo se bloquea CAMBIARLO sin Pro.
+  const currentColor = (mine.brandColor ?? DEFAULT_BRAND_COLOR.value).toLowerCase();
+  if (
+    brandColor.toLowerCase() !== currentColor &&
+    !(await getProStatus(user.id)).isPro
+  ) {
+    return {
+      ok: false,
+      error:
+        "Los colores personalizados son un beneficio Pro. Activa tu plan para cambiar el color de tu tienda.",
+    };
+  }
 
   try {
     await updateStoreAppearance(mine.creator.id, {
@@ -717,6 +767,15 @@ export async function confirmTransferPaidAction(
   }
   if (found.purchase.paymentMethod !== "transfer") {
     redirect("/dashboard");
+  }
+  const paidCount = mine.purchases.filter(
+    (p) => p.status === "paid" && p.token !== token,
+  ).length;
+  if (
+    paidCount >= FREE_MAX_SALES &&
+    !(await getProStatus(user.id)).isPro
+  ) {
+    redirect("/dashboard?mp=pro_required");
   }
   await updatePurchasePayment(token, { status: "paid" });
   await fulfillSessionAfterPaid(token, "Pago por transferencia confirmado");

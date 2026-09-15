@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPayment, resolveAccessTokenForMpUser } from "@/lib/mercadopago";
 import { fulfillApprovedPayment } from "@/lib/fulfill-payment";
+import { fulfillPlanPayment } from "@/lib/plans";
 
 export async function GET(request: Request) {
   // Mercado Pago a veces consulta con GET topic/id
@@ -58,7 +59,11 @@ async function handleWebhook(request: Request) {
     const accessToken = await resolveAccessTokenForMpUser(mpUserId);
     const payment = await getPayment(paymentId, accessToken);
     if (payment.status === "approved") {
-      await fulfillApprovedPayment(payment);
+      // Pagos de suscripción Pro: activan el plan y listo.
+      const plan = await fulfillPlanPayment(payment);
+      if (!plan) {
+        await fulfillApprovedPayment(payment);
+      }
     }
 
     return NextResponse.json({ ok: true });

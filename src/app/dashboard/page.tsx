@@ -7,7 +7,17 @@ import { StoreSettingsPanel } from "@/components/store-settings-panel";
 import { DashboardStoreProvider } from "@/components/store-providers";
 import { WeekCalendar } from "@/components/week-calendar";
 import { SignOutButton } from "@/components/sign-out-button";
+import { ProCheckoutButton } from "@/components/pro-checkout-button";
 import { requireUser } from "@/lib/auth";
+import {
+  FREE_MAX_PRODUCTS,
+  FREE_MAX_SALES,
+  PRO_CHARGE_CLP,
+  PRO_DISPLAY_PRICE_CLP,
+  PRO_REGULAR_PRICE_CLP,
+  getProStatus,
+  proDaysLeft,
+} from "@/lib/plans";
 import {
   formatClp,
   getMyStore,
@@ -33,11 +43,11 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ google?: string; mp?: string }>;
+  searchParams: Promise<{ google?: string; mp?: string; upgrade?: string }>;
 };
 
 export default async function DashboardPage({ searchParams }: Props) {
-  const { google, mp } = await searchParams;
+  const { google, mp, upgrade } = await searchParams;
   const user = await requireUser();
   const mine = await getMyStore(user.id);
   if (!mine) redirect("/onboarding");
@@ -56,6 +66,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const products = mine.products;
   const store = mine;
   const coupons = await listCoupons(mine.creator.id);
+  const pro = await getProStatus(user.id);
+  const daysLeft = proDaysLeft(pro.expiresAt);
+  const paidSales = store.purchases.filter(
+    (purchase) => purchase.status === "paid",
+  ).length;
   const pendingTransfers = store.purchases.filter(
     (purchase) =>
       purchase.status === "pending" && purchase.paymentMethod === "transfer",
@@ -86,6 +101,109 @@ export default async function DashboardPage({ searchParams }: Props) {
       </header>
 
       <main className="shell relative z-[1] space-y-6 pb-16">
+        {mp === "pro_ok" ? (
+          <div className="rounded-[1.5rem] border border-[var(--teal)]/40 bg-[var(--mint)]/40 p-5 backdrop-blur-sm sm:p-6">
+            <p className="font-display text-xl text-[var(--ink)]">
+              ¡Plan Pro activado! 🎉
+            </p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">
+              Productos y ventas sin tope hasta el{" "}
+              {pro.expiresAt
+                ? new Date(pro.expiresAt).toLocaleDateString("es-CL", {
+                    day: "numeric",
+                    month: "long",
+                  })
+                : "próximo mes"}
+              .
+            </p>
+          </div>
+        ) : null}
+
+        {mp === "pro_required" ? (
+          <div className="rounded-[1.5rem] border border-[var(--coral)]/40 bg-white/70 p-5 backdrop-blur-sm sm:p-6">
+            <p className="font-display text-xl text-[var(--ink)]">
+              Llegaste al límite del plan Gratis
+            </p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">
+              Hasta 3 productos y 5 ventas. Pasa a Pro para seguir vendiendo sin
+              tope.
+            </p>
+          </div>
+        ) : null}
+
+        {pro.isPro ? (
+          <section className="rounded-[1.5rem] border border-[var(--teal)]/40 bg-white/70 p-5 backdrop-blur-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-xl text-[var(--ink)]">
+                  Plan Pro{" "}
+                  <span className="rounded-full bg-[var(--mint)]/60 px-3 py-1 text-xs font-semibold text-[var(--teal-deep)]">
+                    Vigente hasta el{" "}
+                    {pro.expiresAt
+                      ? new Date(pro.expiresAt).toLocaleDateString("es-CL", {
+                          day: "numeric",
+                          month: "short",
+                        })
+                      : "—"}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                  Productos y ventas sin tope · te quedan {daysLeft} días.
+                </p>
+              </div>
+              {daysLeft <= 7 ? (
+                <div className="w-full sm:w-auto">
+                  <ProCheckoutButton
+                    label={`Renovar Pro · ${formatClp(PRO_CHARGE_CLP)}`}
+                    className="btn-primary w-full justify-center text-sm sm:w-auto"
+                  />
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : upgrade === "pro" ? (
+          <section className="rounded-[1.5rem] border border-[var(--teal)]/40 bg-white/70 p-5 backdrop-blur-sm sm:p-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--teal-deep)]">
+              Plan Pro · precio de lanzamiento
+            </p>
+            <p className="font-display mt-2 text-4xl text-[var(--ink)]">
+              {formatClp(PRO_DISPLAY_PRICE_CLP)}{" "}
+              <span className="text-xl text-[var(--ink-muted)] line-through">
+                {formatClp(PRO_REGULAR_PRICE_CLP)}
+              </span>
+            </p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">
+              /mes · productos ilimitados · ventas sin tope · cupones · colores ·
+              marca de agua
+            </p>
+            <div className="mt-4 max-w-sm">
+              <ProCheckoutButton
+                label={`Pagar ${formatClp(PRO_CHARGE_CLP)} con Mercado Pago`}
+              />
+              <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                Precio de prueba pre-lanzamiento: hoy pagas{" "}
+                {formatClp(PRO_CHARGE_CLP)}. Activa 30 días de Pro al
+                acreditarse el pago.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5 backdrop-blur-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-xl text-[var(--ink)]">Plan Gratis</p>
+                <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                  {products.length}/{FREE_MAX_PRODUCTS} productos · {paidSales}/
+                  {FREE_MAX_SALES} ventas
+                </p>
+              </div>
+              <Link href="/dashboard?upgrade=pro" className="btn-primary text-sm">
+                Pasar a Pro
+              </Link>
+            </div>
+          </section>
+        )}
+
         <WeekCalendar events={googleEvents} connected={googleOn} />
 
         <div className="grid items-start gap-6 lg:grid-cols-2">

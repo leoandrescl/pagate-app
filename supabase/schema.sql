@@ -333,6 +333,30 @@ $$;
 grant execute on function public.validate_coupon(uuid, text, numeric)
   to anon, authenticated;
 
+-- Suscripciones Pro (pago mensual manual vía Mercado Pago, token de plataforma).
+-- Cada fila = 1 pago aprobado. Pro vigente = existe fila con expires_at futuro.
+create table if not exists public.pro_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  mp_payment_id text not null unique,
+  amount_clp integer not null,
+  paid_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists pro_subscriptions_user_id_idx
+  on public.pro_subscriptions (user_id);
+create index if not exists pro_subscriptions_expires_at_idx
+  on public.pro_subscriptions (expires_at);
+
+alter table public.pro_subscriptions enable row level security;
+drop policy if exists "pro_subscriptions select own" on public.pro_subscriptions;
+create policy "pro_subscriptions select own"
+  on public.pro_subscriptions for select
+  to authenticated
+  using (user_id = auth.uid());
+
 -- Private bucket for digital product files (service role uploads/downloads).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
