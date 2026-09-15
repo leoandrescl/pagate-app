@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { studioHref } from "@/lib/urls";
 import { comparisons } from "@/data/comparisons";
@@ -21,10 +22,18 @@ export function LandingHeader() {
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/"
-            className="font-display shrink-0 text-2xl font-semibold text-[var(--ink)]"
+            className="shrink-0"
+            aria-label="Pagate - inicio"
             onClick={() => setOpen(false)}
           >
-            Pagate
+            <Image
+              src="/pagate-logo.png"
+              alt="Pagate"
+              width={120}
+              height={32}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
 
           <nav className="hidden items-center gap-3 sm:flex" aria-label="Principal">
@@ -113,7 +122,15 @@ export function LandingFooter() {
     <footer className="relative z-[1] border-t border-[var(--line)] bg-white/40 backdrop-blur-sm">
       <div className="shell grid gap-8 py-10 max-[480px]:gap-9 sm:grid-cols-2 sm:gap-10 sm:py-12 lg:grid-cols-4">
         <div>
-          <p className="font-display text-2xl font-semibold text-[var(--ink)]">Pagate</p>
+          <Link href="/" aria-label="Pagate - inicio">
+            <Image
+              src="/pagate-logo.png"
+              alt="Pagate"
+              width={130}
+              height={35}
+              className="h-9 w-auto"
+            />
+          </Link>
         </div>
         <div>
           <p className="text-sm font-semibold text-[var(--ink)]">Navegación</p>
