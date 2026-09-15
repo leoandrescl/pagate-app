@@ -147,14 +147,20 @@ export function LandingFooter() {
               </Link>
             </li>
             <li>
-              <a href="#" className="inline-flex min-h-11 items-center hover:text-[var(--teal)]">
+              <Link
+                href="/terminos"
+                className="inline-flex min-h-11 items-center hover:text-[var(--teal)]"
+              >
                 Términos
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="inline-flex min-h-11 items-center hover:text-[var(--teal)]">
+              <Link
+                href="/privacidad"
+                className="inline-flex min-h-11 items-center hover:text-[var(--teal)]"
+              >
                 Privacidad
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
